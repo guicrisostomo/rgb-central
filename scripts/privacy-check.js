@@ -2,7 +2,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const ignoredDirectories = new Set(['.git', 'dist', 'node_modules']);
+// Pastas criadas por Git, builds, dependências e editores não fazem parte do
+// pacote público. Worktrees do Kilo podem conter outro repositório completo e
+// caminhos locais, portanto devem ser ignoradas como um todo.
+const ignoredDirectories = new Set(['.git', '.kilo', 'dist', 'node_modules']);
 const ignoredFiles = new Set(['package-lock.json']);
 const privateGeneratedFiles = new Set([
   'config.json',
