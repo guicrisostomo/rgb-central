@@ -129,12 +129,38 @@ function Get-ProcessSliders {
   }
 }
 
-$process = Get-Process -Name 'NGenuity2' -ErrorAction SilentlyContinue |
-  Where-Object { $_.MainWindowHandle -ne 0 } |
-  Select-Object -First 1
+$process = Get-Process -Name 'NGenuity2' -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $process) { throw 'Abra o HyperX NGENUITY e tente novamente.' }
-$window = [System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$process.MainWindowHandle)
+
+$window = $null
+if ($process.MainWindowHandle -ne 0) {
+  $window = [System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$process.MainWindowHandle)
+}
+
+if (-not $window) {
+  # Aplicativos instalados pela Microsoft Store podem hospedar a janela em
+  # outro processo e manter MainWindowHandle igual a zero. Consulte somente
+  # as janelas de primeiro nivel para nao atravessar processos protegidos.
+  $desktop = [System.Windows.Automation.AutomationElement]::RootElement
+  $nameCondition = [System.Windows.Automation.PropertyCondition]::new(
+    [System.Windows.Automation.AutomationElement]::NameProperty,
+    'HyperX NGENUITY'
+  )
+  $window = $desktop.FindFirst([System.Windows.Automation.TreeScope]::Children, $nameCondition)
+}
+
+if (-not $window) {
+  # Fallback limitado a janelas de primeiro nivel com NGENUITY no titulo.
+  $desktop = [System.Windows.Automation.AutomationElement]::RootElement
+  foreach ($candidate in $desktop.FindAll(
+    [System.Windows.Automation.TreeScope]::Children,
+    [System.Windows.Automation.Condition]::TrueCondition
+  )) {
+    if ($candidate.Current.Name -match '(?i)NGENUITY') { $window = $candidate; break }
+  }
+}
 if (-not $window) { throw 'A janela principal do HyperX NGENUITY nao foi encontrada.' }
+$automationProcessId = $window.Current.ProcessId
 
 $windowPattern = $null
 if ($window.TryGetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern, [ref]$windowPattern)) {
@@ -180,7 +206,7 @@ if ($Brightness -gt 0) {
 }
 
 $slidersBefore = @{}
-foreach ($slider in (Get-ProcessSliders $process.Id $window)) {
+foreach ($slider in (Get-ProcessSliders $automationProcessId $window)) {
   $slidersBefore[($slider.GetRuntimeId() -join '.')] = $true
 }
 
@@ -189,7 +215,7 @@ if (-not (Invoke-Element $brightnessButton)) { throw 'O controle de brilho do NG
 Start-Sleep -Milliseconds 250
 
 $brightnessSlider = $null
-foreach ($slider in (Get-ProcessSliders $process.Id $window)) {
+foreach ($slider in (Get-ProcessSliders $automationProcessId $window)) {
   $runtimeId = $slider.GetRuntimeId() -join '.'
   if (-not $slidersBefore.ContainsKey($runtimeId)) { $brightnessSlider = $slider; break }
 }

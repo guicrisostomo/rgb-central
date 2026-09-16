@@ -1,6 +1,6 @@
 {
   "name": "rgb-central",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Central segura para coordenar perfis RGB pelos softwares oficiais.",
   "main": "src/main.js",
   "type": "commonjs",
