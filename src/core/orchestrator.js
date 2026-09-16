@@ -8,6 +8,14 @@ function replaceTokens(value, scene) {
     .replaceAll('{brightness}', String(scene.brightness));
 }
 
+function sanitizePowerShellOutput(value) {
+  return String(value || '')
+    .replace(/[A-Za-z]:\\Users\\[^\\\r\n]+/gi, '%USERPROFILE%')
+    .replaceAll('\u0000', '')
+    .trim()
+    .slice(0, 500);
+}
+
 function executePowerShell(controller, scene, automationRoot) {
   return new Promise((resolve) => {
     const scriptPath = path.resolve(automationRoot, controller.script);
@@ -48,7 +56,7 @@ function executePowerShell(controller, scene, automationRoot) {
       clearTimeout(timer);
       resolve({
         ok: code === 0,
-        message: (code === 0 ? output : error || output || `Código ${code}`).trim().slice(0, 500)
+        message: sanitizePowerShellOutput(code === 0 ? output : error || output || `Código ${code}`)
       });
     });
   });
@@ -98,4 +106,4 @@ class Orchestrator {
   }
 }
 
-module.exports = { Orchestrator, executePowerShell, replaceTokens };
+module.exports = { Orchestrator, executePowerShell, replaceTokens, sanitizePowerShellOutput };

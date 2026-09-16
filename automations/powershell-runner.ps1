@@ -17,13 +17,22 @@ if (-not (Test-Path -LiteralPath $payload.scriptPath -PathType Leaf)) {
   throw 'Script autorizado não encontrado.'
 }
 
-$arguments = @(
-  '-SceneId', [string]$payload.sceneId,
-  '-Color', [string]$payload.color,
-  '-Brightness', [string]$payload.brightness
-)
-foreach ($argument in $payload.extraArgs) {
-  $arguments += [string]$argument
+$parameters = @{
+  SceneId = [string]$payload.sceneId
+  Color = [string]$payload.color
+  Brightness = [int]$payload.brightness
 }
 
-& $payload.scriptPath @arguments
+$extraArguments = @($payload.extraArgs)
+if (($extraArguments.Count % 2) -ne 0) {
+  throw 'Parâmetros adicionais inválidos.'
+}
+for ($index = 0; $index -lt $extraArguments.Count; $index += 2) {
+  $parameterName = [string]$extraArguments[$index]
+  if ($parameterName -notmatch '^-([A-Za-z][A-Za-z0-9]{0,39})$') {
+    throw 'Nome de parâmetro adicional inválido.'
+  }
+  $parameters[$Matches[1]] = [string]$extraArguments[$index + 1]
+}
+
+& $payload.scriptPath @parameters
