@@ -20,6 +20,10 @@ Ao contrário de soluções que controlam os dispositivos diretamente, este proj
 - Token aleatório criado na primeira execução.
 - Modo de demonstração que não toca no hardware.
 - Editor visual para criar cenas com qualquer nome, cor e brilho.
+- Telas separadas de Visão geral, Automações e Configurações, com linguagem guiada.
+- Diagnóstico e inspeção de interfaces executados por botões, inclusive sob políticas restritas do PowerShell.
+- Configuração visual de acesso local/rede, porta e renovação da chave de proteção.
+- Gerador local da configuração do Home Assistant, copiada sem exibir o token na tela.
 - Controladores opcionais que podem ser ativados ou desativados individualmente.
 - Modelos de adaptadores para iCUE, NGENUITY, Redragon, RGB Fusion e L-Connect 3.
 - Suporte a novos adaptadores por configuração, sem limitar o projeto a um setup específico.
@@ -55,7 +59,7 @@ npm start
 
 Na primeira execução, o aplicativo cria `config.json` e a pasta `automations` dentro de `%APPDATA%\rgb-central`. Fechar a janela mantém o aplicativo na bandeja. Use **Sair** no menu da bandeja para encerrá-lo completamente.
 
-As cenas podem ser personalizadas diretamente na interface. O usuário escolhe nome, cor e brilho, adiciona ou remove cenas e ativa somente os controladores que realmente utiliza. Os fabricantes presentes na configuração inicial são modelos opcionais e começam desativados.
+As cenas podem ser personalizadas diretamente na interface. O usuário escolhe nome, cor e brilho, adiciona ou remove cenas e ativa somente os controladores que realmente utiliza. As telas **Automações** e **Configurações** reúnem as tarefas comuns sem exigir a edição de JSON ou a execução manual de scripts. Os fabricantes presentes na configuração inicial são modelos opcionais e começam desativados.
 
 Controladores ainda não calibrados aparecem como **Configuração necessária** e não podem ser ativados. Isso impede que um modelo incompleto tente controlar aplicativos ou hardware por engano.
 
@@ -74,9 +78,9 @@ Os artefatos são gerados em `dist/`.
 
 1. Instale e atualize os aplicativos oficiais utilizados no computador.
 2. Em cada aplicativo, crie os seis perfis descritos em `automations/profiles.json`.
-3. Execute `automations/diagnostics.ps1` no PowerShell.
+3. Abra **Automações** no RGB Central e clique em **Verificar programas**.
 4. Revise o arquivo `rgb-central-diagnostico.txt` criado na Área de Trabalho.
-5. Abra os aplicativos RGB e execute `automations/inspect-rgb-ui.ps1` para gerar uma árvore somente de leitura dos controles acessíveis.
+5. Abra os aplicativos RGB e clique em **Inspecionar telas abertas** para gerar uma árvore somente de leitura dos controles acessíveis.
 6. Revise o arquivo `rgb-central-interface.txt` criado na Área de Trabalho.
 7. Implemente e teste a seleção de perfil do fabricante desejado.
 8. Somente depois altere `enabled` para `true` no controlador correspondente.
@@ -87,11 +91,11 @@ O diagnóstico não coleta senhas ou tokens, e a inspeção não lê valores dig
 
 Depois de validar tudo localmente:
 
-1. Altere `api.host` para `0.0.0.0` no `config.json` criado pelo aplicativo.
-2. Mantenha o token aleatório e não o publique.
-3. Libere a porta TCP `47831` somente no perfil de rede privada do Windows.
-4. Reinicie o RGB Central.
-5. Adapte o exemplo em `docs/home-assistant.yaml.example`.
+1. Abra **Configurações** e selecione **Minha rede local**.
+2. Salve e mantenha a chave de proteção privada.
+3. Libere a porta escolhida somente no perfil de rede privada do Windows.
+4. Abra **Automações** e clique em **Copiar configuração**.
+5. Cole o trecho no `configuration.yaml` do Home Assistant e substitua `IP_DO_PC`.
 
 Exemplo de teste local:
 

@@ -1,12 +1,39 @@
 let model;
 let draftScenes = [];
 
+const VIEW_COPY = {
+  overview: ['SEU SETUP', 'Visão geral', 'Aplique uma cor em todos os controladores ativos.'],
+  automations: ['PASSO A PASSO', 'Automações', 'Conecte os softwares oficiais sem precisar programar.'],
+  settings: ['PREFERÊNCIAS', 'Configurações', 'Ajuste como o aplicativo inicia e quem pode acessá-lo.']
+};
+
 function appendTextElement(parent, tag, text, className) {
   const element = document.createElement(tag);
   element.textContent = text;
   if (className) element.className = className;
   parent.appendChild(element);
   return element;
+}
+
+function setStatus(selector, message, failed = false) {
+  const element = document.querySelector(selector);
+  element.textContent = message;
+  element.classList.toggle('error', failed);
+}
+
+function showView(name) {
+  const copy = VIEW_COPY[name] || VIEW_COPY.overview;
+  document.querySelectorAll('.view').forEach((view) => { view.hidden = view.id !== `view-${name}`; });
+  document.querySelectorAll('.nav-button').forEach((button) => {
+    const active = button.dataset.view === name;
+    button.classList.toggle('active', active);
+    if (active) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+  document.querySelector('#view-eyebrow').textContent = copy[0];
+  document.querySelector('#view-title').textContent = copy[1];
+  document.querySelector('#view-subtitle').textContent = copy[2];
+  document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function controllerResult(id) {
@@ -16,7 +43,6 @@ function controllerResult(id) {
 function sceneEditorRow(scene, index) {
   const row = document.createElement('div');
   row.className = 'scene-editor-row';
-
   const color = document.createElement('input');
   color.type = 'color';
   color.value = scene.color;
@@ -60,7 +86,6 @@ function sceneEditorRow(scene, index) {
     draftScenes.splice(index, 1);
     renderSceneEditor();
   });
-
   row.append(color, details, remove);
   return row;
 }
@@ -76,7 +101,7 @@ function openSceneEditor() {
   document.querySelector('#scene-dialog').showModal();
 }
 
-function render() {
+function renderScenes() {
   const scenes = document.querySelector('#scenes');
   scenes.replaceChildren(...model.scenes.map((scene) => {
     const button = document.createElement('button');
@@ -94,18 +119,26 @@ function render() {
     });
     return button;
   }));
+}
 
+function renderControllers() {
   const enabledCount = model.controllers.filter((item) => item.enabled).length;
-  document.querySelector('#controller-summary').textContent = `${enabledCount} de ${model.controllers.length} ativos`;
+  const readyCount = model.controllers.filter((item) => item.configured).length;
+  document.querySelector('#controller-summary').textContent = `${enabledCount} ativos · ${readyCount} preparados`;
+  document.querySelector('#overview-controller-count').textContent = `${enabledCount} de ${model.controllers.length} ativos`;
+  document.querySelector('#overview-controller-help').textContent = readyCount < model.controllers.length
+    ? 'Alguns dispositivos ainda precisam ser preparados.'
+    : 'Todos os dispositivos estão preparados.';
+
   const list = document.querySelector('#controllers');
   list.replaceChildren(...model.controllers.map((controller) => {
     const result = controllerResult(controller.id);
     const configured = controller.configured;
     const item = document.createElement('div');
-    item.className = 'controller';
+    item.className = `controller${configured ? '' : ' needs-setup'}`;
     const stateClass = result ? (result.ok ? 'ok' : 'fail') : '';
     const stateLabel = !configured
-      ? 'Configuração necessária'
+      ? 'Preparação necessária'
       : result ? (result.ok ? 'Aplicado' : 'Falhou') : controller.enabled ? 'Ativo' : 'Desativado';
     appendTextElement(item, 'strong', controller.name);
     const toggle = document.createElement('label');
@@ -114,7 +147,7 @@ function render() {
     checkbox.type = 'checkbox';
     checkbox.checked = controller.enabled;
     checkbox.disabled = !configured;
-    if (!configured) checkbox.title = 'Calibre o adaptador e marque configured=true no config.json.';
+    checkbox.title = configured ? '' : 'Faça as verificações desta tela antes de ativar.';
     checkbox.setAttribute('aria-label', `Ativar ${controller.name}`);
     checkbox.addEventListener('change', async () => {
       checkbox.disabled = true;
@@ -125,32 +158,99 @@ function render() {
         checkbox.checked = !checkbox.checked;
         window.alert(error.message);
       } finally {
-        checkbox.disabled = false;
+        checkbox.disabled = !controller.configured;
       }
     });
-    toggle.append(checkbox, appendTextElement(document.createDocumentFragment(), 'span', stateLabel, `state ${stateClass}`));
+    const state = document.createElement('span');
+    state.textContent = stateLabel;
+    state.className = `state ${stateClass}`;
+    toggle.append(checkbox, state);
     item.appendChild(toggle);
     const description = !configured
-      ? `${controller.description || ''} Calibre o adaptador antes de ativá-lo.`.trim()
+      ? `${controller.description || ''} Use as verificações guiadas acima e abaixo desta lista.`.trim()
       : result?.message || controller.description || '';
     appendTextElement(item, 'small', description);
     return item;
   }));
+}
 
+function syncSettingsForm() {
+  document.querySelector('#launch-at-login').checked = model.launchAtLogin;
+  const accessValue = model.api.lanEnabled ? 'lan' : 'local';
+  document.querySelector(`input[name="access-mode"][value="${accessValue}"]`).checked = true;
+  document.querySelector('#api-port').value = String(model.api.port);
+  document.querySelector('#regenerate-token').checked = false;
+  document.querySelector('#token-state').textContent = model.api.tokenConfigured ? 'Protegido' : 'Atenção necessária';
+  document.querySelector('#token-state').classList.toggle('warning', !model.api.tokenConfigured);
+  updateLanWarning();
+}
+
+function render() {
+  renderScenes();
+  renderControllers();
   const pill = document.querySelector('#status-pill');
   pill.textContent = model.state.busy ? 'Aplicando…' : 'Pronto';
   pill.classList.toggle('busy', model.state.busy);
 }
 
+function updateLanWarning() {
+  const lan = document.querySelector('input[name="access-mode"]:checked')?.value === 'lan';
+  document.querySelector('#lan-warning').hidden = !lan;
+}
+
+async function runTool(button) {
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Verificando…';
+  try {
+    const result = await window.rgbCentral.runSetupTool(button.dataset.tool);
+    window.alert(result.message);
+  } catch (error) {
+    window.alert(`Não foi possível concluir: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
 async function start() {
   model = await window.rgbCentral.bootstrap();
-  document.querySelector('#api-address').textContent = model.api.lanEnabled
-    ? `API disponível na rede pela porta ${model.api.port} (token obrigatório).`
-    : `API protegida somente neste PC: ${model.api.host}:${model.api.port}.`;
-  const launch = document.querySelector('#launch-at-login');
-  launch.checked = model.launchAtLogin;
-  launch.addEventListener('change', async () => {
-    launch.checked = await window.rgbCentral.setLaunchAtLogin(launch.checked);
+  document.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', () => showView(button.dataset.view)));
+  document.querySelectorAll('.navigate').forEach((button) => button.addEventListener('click', () => showView(button.dataset.target)));
+  document.querySelectorAll('input[name="access-mode"]').forEach((input) => input.addEventListener('change', updateLanWarning));
+  document.querySelectorAll('.tool-run').forEach((button) => button.addEventListener('click', () => runTool(button)));
+  document.querySelectorAll('.tool-open').forEach((button) => button.addEventListener('click', async () => {
+    try { await window.rgbCentral.openSetupOutput(button.dataset.tool); }
+    catch (error) { window.alert(error.message); }
+  }));
+  document.querySelector('#copy-home-assistant').addEventListener('click', async () => {
+    setStatus('#integration-status', 'Copiando…');
+    try {
+      const result = await window.rgbCentral.copyHomeAssistantConfig();
+      setStatus('#integration-status', result.message);
+    } catch (error) {
+      setStatus('#integration-status', error.message, true);
+    }
+  });
+  document.querySelector('#settings-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const submit = event.submitter;
+    submit.disabled = true;
+    setStatus('#settings-status', 'Salvando…');
+    try {
+      model = await window.rgbCentral.saveAppSettings({
+        launchAtLogin: document.querySelector('#launch-at-login').checked,
+        lanEnabled: document.querySelector('input[name="access-mode"]:checked').value === 'lan',
+        port: Number(document.querySelector('#api-port').value),
+        regenerateToken: document.querySelector('#regenerate-token').checked
+      });
+      syncSettingsForm();
+      setStatus('#settings-status', 'Configurações salvas com segurança.');
+    } catch (error) {
+      setStatus('#settings-status', error.message, true);
+    } finally {
+      submit.disabled = false;
+    }
   });
   document.querySelector('#open-config').addEventListener('click', () => window.rgbCentral.openConfig());
   document.querySelector('#open-automations').addEventListener('click', () => window.rgbCentral.openAutomations());
@@ -159,12 +259,7 @@ async function start() {
   document.querySelector('#cancel-scenes').addEventListener('click', () => document.querySelector('#scene-dialog').close());
   document.querySelector('#add-scene').addEventListener('click', () => {
     if (draftScenes.length >= 30) return;
-    draftScenes.push({
-      id: `scene_${Date.now().toString(36)}`,
-      name: `Cena ${draftScenes.length + 1}`,
-      color: '#31e981',
-      brightness: 70
-    });
+    draftScenes.push({ id: `scene_${Date.now().toString(36)}`, name: `Cena ${draftScenes.length + 1}`, color: '#31e981', brightness: 70 });
     renderSceneEditor();
   });
   document.querySelector('#scene-form').addEventListener('submit', async (event) => {
@@ -175,13 +270,15 @@ async function start() {
       model = await window.rgbCentral.saveScenes(draftScenes);
       document.querySelector('#scene-dialog').close();
       render();
-    } catch (cause) {
-      error.textContent = cause.message;
-    }
+    } catch (cause) { error.textContent = cause.message; }
   });
   window.rgbCentral.onState((state) => { model.state = state; render(); });
   window.rgbCentral.onConfig((snapshot) => { model = snapshot; render(); });
+  syncSettingsForm();
   render();
 }
 
-start();
+start().catch((error) => {
+  document.querySelector('#status-pill').textContent = 'Erro ao iniciar';
+  window.alert(error.message);
+});

@@ -1,8 +1,19 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, clipboard, ipcMain, Menu, Tray, nativeImage, shell } = require('electron');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
 const path = require('node:path');
+const { promisify } = require('node:util');
+const { execFile } = require('node:child_process');
 const { ensureUserFiles, loadConfig, saveConfig } = require('./core/config');
 const { Orchestrator } = require('./core/orchestrator');
 const { createApiServer } = require('./core/api-server');
+const { buildHomeAssistantConfig, normalizeNetworkSettings } = require('./core/integrations');
+
+const execFileAsync = promisify(execFile);
+const SETUP_TOOLS = {
+  diagnostics: { script: 'diagnostics.ps1', output: 'rgb-central-diagnostico.txt' },
+  interface: { script: 'inspect-rgb-ui.ps1', output: 'rgb-central-interface.txt' }
+};
 
 let windowRef;
 let trayRef;
@@ -18,10 +29,10 @@ function resourceRoot() {
 
 function createWindow() {
   windowRef = new BrowserWindow({
-    width: 920,
-    height: 700,
-    minWidth: 760,
-    minHeight: 580,
+    width: 1040,
+    height: 780,
+    minWidth: 800,
+    minHeight: 620,
     title: 'RGB Central',
     backgroundColor: '#0b0d12',
     webPreferences: {
@@ -68,9 +79,70 @@ function publicConfig() {
     scenes: config.scenes,
     controllers: config.controllers.map(({ script, args, ...safe }) => safe),
     state: orchestrator.publicState(),
-    api: { host: config.api.host, port: config.api.port, lanEnabled: config.api.host !== '127.0.0.1' },
+    api: {
+      host: config.api.host,
+      port: config.api.port,
+      lanEnabled: config.api.host === '0.0.0.0',
+      tokenConfigured: Boolean(config.api.token && config.api.token.length >= 24)
+    },
     launchAtLogin: app.getLoginItemSettings().openAtLogin
   };
+}
+
+async function saveAppSettings(settings) {
+  const network = normalizeNetworkSettings(settings);
+  const oldConfig = JSON.parse(JSON.stringify(config));
+  const oldLaunchAtLogin = app.getLoginItemSettings().openAtLogin;
+  const nextToken = settings.regenerateToken
+    ? crypto.randomBytes(24).toString('hex')
+    : config.api.token;
+  const nextConfig = {
+    ...config,
+    api: { ...config.api, ...network, token: nextToken }
+  };
+
+  if (Boolean(settings.launchAtLogin) !== app.getLoginItemSettings().openAtLogin) {
+    app.setLoginItemSettings({ openAtLogin: Boolean(settings.launchAtLogin), openAsHidden: true });
+  }
+
+  await apiRef.stop();
+  try {
+    const snapshot = persistConfig(nextConfig);
+    apiRef = createApiServer({ config, orchestrator });
+    await apiRef.start();
+    return snapshot;
+  } catch (error) {
+    app.setLoginItemSettings({ openAtLogin: oldLaunchAtLogin, openAsHidden: true });
+    persistConfig(oldConfig);
+    apiRef = createApiServer({ config, orchestrator });
+    await apiRef.start();
+    throw new Error(`Não foi possível salvar: ${error.message}`);
+  }
+}
+
+function setupTool(toolId) {
+  const tool = SETUP_TOOLS[toolId];
+  if (!tool) throw new Error('Ferramenta não permitida.');
+  return tool;
+}
+
+async function runSetupTool(toolId) {
+  const tool = setupTool(toolId);
+  const scriptPath = path.join(paths.automationRoot, tool.script);
+  if (!fs.existsSync(scriptPath)) throw new Error('Ferramenta de diagnóstico não encontrada.');
+  await execFileAsync('powershell.exe', [
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', scriptPath
+  ], { encoding: 'utf8', timeout: 120000, windowsHide: true, maxBuffer: 1024 * 1024 });
+  return { ok: true, message: 'Concluído. O resultado foi salvo na Área de Trabalho.' };
+}
+
+async function openSetupOutput(toolId) {
+  const tool = setupTool(toolId);
+  const outputPath = path.join(app.getPath('desktop'), tool.output);
+  if (!fs.existsSync(outputPath)) throw new Error('Execute esta verificação antes de abrir o resultado.');
+  const result = await shell.openPath(outputPath);
+  if (result) throw new Error(result);
+  return true;
 }
 
 function persistConfig(nextConfig) {
@@ -118,6 +190,21 @@ ipcMain.handle('set-controller-enabled', (_event, controllerId, enabled) => {
 ipcMain.handle('set-launch-at-login', (_event, enabled) => {
   app.setLoginItemSettings({ openAtLogin: Boolean(enabled), openAsHidden: true });
   return app.getLoginItemSettings().openAtLogin;
+});
+ipcMain.handle('save-app-settings', (_event, settings) => saveAppSettings(settings));
+ipcMain.handle('run-setup-tool', (_event, toolId) => runSetupTool(toolId));
+ipcMain.handle('open-setup-output', (_event, toolId) => openSetupOutput(toolId));
+ipcMain.handle('copy-home-assistant-config', () => {
+  if (config.api.host !== '0.0.0.0') {
+    throw new Error('Em Configurações, ative “Minha rede local” antes de conectar o Home Assistant.');
+  }
+  const value = buildHomeAssistantConfig({
+    port: config.api.port,
+    token: config.api.token,
+    scenes: config.scenes
+  });
+  clipboard.writeText(value);
+  return { ok: true, message: 'Configuração copiada. O token não foi mostrado na tela.' };
 });
 ipcMain.handle('open-config', () => shell.openPath(paths.configPath));
 ipcMain.handle('open-automations', () => shell.openPath(paths.automationRoot));

@@ -8,68 +8,108 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main>
-      <header>
-        <div>
-          <p class="eyebrow">CONTROLE LOCAL E SEGURO</p>
-          <h1>RGB Central</h1>
-          <p class="subtitle">Uma cena para o setup inteiro, preservando os softwares oficiais.</p>
-        </div>
-        <span id="status-pill" class="pill">Pronto</span>
-      </header>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div><strong>RGB Central</strong><small>Controle local</small></div></div>
+        <nav aria-label="Navegação principal">
+          <button class="nav-button active" data-view="overview" aria-current="page"><span aria-hidden="true">●</span><span>Visão geral</span></button>
+          <button class="nav-button" data-view="automations"><span aria-hidden="true">◆</span><span>Automações</span></button>
+          <button class="nav-button" data-view="settings"><span aria-hidden="true">⚙</span><span>Configurações</span></button>
+        </nav>
+        <div class="sidebar-note"><strong>Seus dados ficam aqui</strong><span>Nenhuma conta ou nuvem é necessária.</span></div>
+      </aside>
 
-      <section>
-        <div class="section-title">
-          <div>
-            <h2>Cenas</h2>
-            <span>Clique uma vez para aplicar em todos os controladores ativos.</span>
+      <main>
+        <header>
+          <div><p id="view-eyebrow" class="eyebrow">SEU SETUP</p><h1 id="view-title">Visão geral</h1><p id="view-subtitle" class="subtitle">Aplique uma cor em todos os controladores ativos.</p></div>
+          <span id="status-pill" class="pill" role="status">Pronto</span>
+        </header>
+
+        <section id="view-overview" class="view">
+          <div class="section-title">
+            <div><h2>Cenas</h2><span>Escolha uma opção. O RGB Central cuida do restante.</span></div>
+            <button id="edit-scenes" class="secondary">Personalizar cenas</button>
           </div>
-          <button id="edit-scenes" class="secondary">Personalizar cenas</button>
-        </div>
-        <div id="scenes" class="scene-grid"></div>
-      </section>
+          <div id="scenes" class="scene-grid"></div>
+          <div class="summary-card">
+            <div><p class="eyebrow">CONTROLADORES</p><strong id="overview-controller-count"></strong><span id="overview-controller-help"></span></div>
+            <button class="secondary navigate" data-target="automations">Configurar dispositivos</button>
+          </div>
+        </section>
 
-      <section>
-        <div class="section-title">
-          <h2>Controladores</h2>
-          <span id="controller-summary"></span>
-        </div>
-        <div id="controllers" class="controller-list"></div>
-      </section>
+        <section id="view-automations" class="view" hidden>
+          <div class="intro-card">
+            <div class="step-number">1</div>
+            <div><h2>Verifique o que está instalado</h2><p>Esta leitura procura aplicativos e dispositivos RGB. Não coleta senhas e não envia o resultado.</p></div>
+            <button class="secondary tool-run" data-tool="diagnostics">Verificar programas</button>
+            <button class="text-button tool-open" data-tool="diagnostics">Abrir último resultado</button>
+          </div>
+          <div class="section-title spaced"><div><h2>Seus controladores</h2><span id="controller-summary"></span></div></div>
+          <div class="notice neutral">As verificações não alteram o hardware. Elas ajudam a confirmar compatibilidade; controladores sem um adaptador calibrado continuam bloqueados por segurança.</div>
+          <div id="controllers" class="controller-list"></div>
+          <div class="intro-card">
+            <div class="step-number">2</div>
+            <div><h2>Prepare a automação visual</h2><p>Abra os aplicativos RGB e faça uma inspeção somente de leitura das telas. Valores digitados não são incluídos.</p></div>
+            <button class="secondary tool-run" data-tool="interface">Inspecionar telas abertas</button>
+            <button class="text-button tool-open" data-tool="interface">Abrir último resultado</button>
+          </div>
+          <div class="integration-card">
+            <div><p class="eyebrow">CASA INTELIGENTE</p><h2>Home Assistant e Alexa</h2><p>Copie uma configuração pronta para o Home Assistant. Depois, exponha as cenas desejadas para a Alexa.</p></div>
+            <button id="copy-home-assistant" class="primary">Copiar configuração</button>
+            <p id="integration-status" class="inline-status" role="status"></p>
+          </div>
+          <details class="advanced-card">
+            <summary>Área avançada</summary>
+            <p>Use estes arquivos apenas para criar ou ajustar adaptadores. O uso normal não exige programação.</p>
+            <div class="actions"><button id="open-automations" class="secondary">Abrir pasta de automações</button></div>
+          </details>
+        </section>
 
-      <section class="settings">
-        <div>
-          <h2>Inicialização e integração</h2>
-          <p id="api-address"></p>
-        </div>
-        <label class="switch-row">
-          <input id="launch-at-login" type="checkbox" />
-          <span>Iniciar com o Windows</span>
-        </label>
-        <div class="actions">
-          <button id="open-config" class="secondary">Abrir configuração</button>
-          <button id="open-automations" class="secondary">Abrir automações</button>
-        </div>
-      </section>
-    </main>
+        <section id="view-settings" class="view" hidden>
+          <form id="settings-form">
+            <div class="settings-card">
+              <div><h2>Inicialização</h2><p>Deixe o RGB Central disponível sem precisar abri-lo manualmente.</p></div>
+              <label class="switch-row"><input id="launch-at-login" type="checkbox" /><span>Iniciar junto com o Windows</span></label>
+            </div>
+            <fieldset class="settings-card access-settings">
+              <legend>Acesso por outros aparelhos</legend>
+              <p>Escolha onde os comandos do RGB Central poderão ser recebidos.</p>
+              <label class="choice-card">
+                <input type="radio" name="access-mode" value="local" />
+                <span><strong>Somente este computador</strong><small>Mais simples e recomendado se você não usa Home Assistant.</small></span><em>Recomendado</em>
+              </label>
+              <label class="choice-card">
+                <input type="radio" name="access-mode" value="lan" />
+                <span><strong>Minha rede local</strong><small>Permite comandos do Home Assistant e de outros aparelhos da sua casa.</small></span>
+              </label>
+              <div id="lan-warning" class="notice" hidden>Use esta opção apenas em uma rede doméstica confiável. Um token forte será exigido.</div>
+              <label class="field-row" for="api-port"><span><strong>Porta</strong><small>Normalmente você não precisa alterar.</small></span><input id="api-port" type="number" min="1024" max="65535" required /></label>
+            </fieldset>
+            <div class="settings-card">
+              <div><h2>Chave de proteção</h2><p>Protege os comandos enviados por outros aplicativos. Ela nunca aparece nesta tela.</p></div>
+              <span id="token-state" class="safe-badge">Protegido</span>
+              <label class="switch-row full-row"><input id="regenerate-token" type="checkbox" /><span>Gerar uma nova chave ao salvar</span></label>
+              <div class="notice full-row">Ao trocar a chave, integrações antigas precisam receber a nova configuração.</div>
+            </div>
+            <p id="settings-status" class="form-status" role="status"></p>
+            <div class="save-bar"><span>As mudanças de rede reiniciam apenas o acesso local.</span><button class="primary" type="submit">Salvar configurações</button></div>
+          </form>
+          <details class="advanced-card">
+            <summary>Área avançada</summary>
+            <p>O arquivo abaixo pode conter a chave de integração. Não o publique nem o envie para outras pessoas.</p>
+            <div class="actions"><button id="open-config" class="secondary">Abrir arquivo de configuração</button></div>
+          </details>
+        </section>
+      </main>
+    </div>
 
     <dialog id="scene-dialog">
       <form id="scene-form" method="dialog">
-        <div class="dialog-header">
-          <div>
-            <p class="eyebrow">CONFIGURAÇÃO LOCAL</p>
-            <h2>Personalizar cenas</h2>
-            <p>Crie combinações próprias de nome, cor e brilho.</p>
-          </div>
-          <button id="close-scenes" class="icon-button" value="cancel" aria-label="Fechar" type="button">×</button>
-        </div>
+        <div class="dialog-header"><div><p class="eyebrow">SUAS PREFERÊNCIAS</p><h2>Personalizar cenas</h2><p>Crie combinações próprias de nome, cor e brilho.</p></div><button id="close-scenes" class="icon-button" aria-label="Fechar" type="button">×</button></div>
         <div id="scene-editor" class="scene-editor"></div>
         <button id="add-scene" class="secondary" type="button">Adicionar cena</button>
         <p id="scene-error" class="form-error" role="alert"></p>
-        <div class="dialog-actions">
-          <button id="cancel-scenes" class="secondary" type="button">Cancelar</button>
-          <button class="primary" type="submit">Salvar cenas</button>
-        </div>
+        <div class="dialog-actions"><button id="cancel-scenes" class="secondary" type="button">Cancelar</button><button class="primary" type="submit">Salvar cenas</button></div>
       </form>
     </dialog>
     <script src="app.js"></script>
