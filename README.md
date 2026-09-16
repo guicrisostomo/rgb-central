@@ -19,7 +19,10 @@ Ao contrário de soluções que controlam os dispositivos diretamente, este proj
 - API HTTP local para Home Assistant e outras automações.
 - Token aleatório criado na primeira execução.
 - Modo de demonstração que não toca no hardware.
-- Estrutura de adaptadores para iCUE, NGENUITY, Redragon, RGB Fusion e L-Connect 3.
+- Editor visual para criar cenas com qualquer nome, cor e brilho.
+- Controladores opcionais que podem ser ativados ou desativados individualmente.
+- Modelos de adaptadores para iCUE, NGENUITY, Redragon, RGB Fusion e L-Connect 3.
+- Suporte a novos adaptadores por configuração, sem limitar o projeto a um setup específico.
 - Script de diagnóstico para identificar versões e caminhos instalados.
 
 ## Modelo de segurança
@@ -46,10 +49,15 @@ Requisitos:
 ```powershell
 npm install
 npm test
+npm run privacy-check
 npm start
 ```
 
 Na primeira execução, o aplicativo cria `config.json` e a pasta `automations` dentro de `%APPDATA%\rgb-central`. Fechar a janela mantém o aplicativo na bandeja. Use **Sair** no menu da bandeja para encerrá-lo completamente.
+
+As cenas podem ser personalizadas diretamente na interface. O usuário escolhe nome, cor e brilho, adiciona ou remove cenas e ativa somente os controladores que realmente utiliza. Os fabricantes presentes na configuração inicial são modelos opcionais e começam desativados.
+
+Para integrar outra marca ou um script próprio, consulte [Criando adaptadores personalizados](docs/custom-adapters.md). O identificador do fabricante não é limitado às marcas fornecidas como exemplo.
 
 ## Gerar instalador e versão portátil
 

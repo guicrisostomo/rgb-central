@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, shell } = require('electron');
 const path = require('node:path');
-const { ensureUserFiles, loadConfig } = require('./core/config');
+const { ensureUserFiles, loadConfig, saveConfig } = require('./core/config');
 const { Orchestrator } = require('./core/orchestrator');
 const { createApiServer } = require('./core/api-server');
 
@@ -44,11 +44,16 @@ function createTray() {
   const traySvg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="16" fill="#0b0d12"/><circle cx="32" cy="32" r="20" fill="none" stroke="#31e981" stroke-width="8"/><circle cx="32" cy="32" r="6" fill="#31e981"/></svg>';
   const icon = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(traySvg).toString('base64')}`);
   trayRef = new Tray(icon.resize({ width: 16, height: 16 }));
+  trayRef.setToolTip('RGB Central');
+  refreshTrayMenu();
+  trayRef.on('double-click', () => windowRef.show());
+}
+
+function refreshTrayMenu() {
   const sceneItems = config.scenes.map((scene) => ({
     label: scene.name,
     click: () => orchestrator.applyScene(scene.id).catch(() => {})
   }));
-  trayRef.setToolTip('RGB Central');
   trayRef.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir RGB Central', click: () => { windowRef.show(); windowRef.focus(); } },
     { type: 'separator' },
@@ -56,7 +61,26 @@ function createTray() {
     { type: 'separator' },
     { label: 'Sair', click: () => { quitting = true; app.quit(); } }
   ]));
-  trayRef.on('double-click', () => windowRef.show());
+}
+
+function publicConfig() {
+  return {
+    scenes: config.scenes,
+    controllers: config.controllers.map(({ script, args, ...safe }) => safe),
+    state: orchestrator.publicState(),
+    api: { host: config.api.host, port: config.api.port, lanEnabled: config.api.host !== '127.0.0.1' },
+    launchAtLogin: app.getLoginItemSettings().openAtLogin
+  };
+}
+
+function persistConfig(nextConfig) {
+  const validated = saveConfig(paths.configPath, nextConfig);
+  Object.assign(config, validated);
+  orchestrator.config = config;
+  refreshTrayMenu();
+  const snapshot = publicConfig();
+  windowRef?.webContents.send('config-updated', snapshot);
+  return snapshot;
 }
 
 app.whenReady().then(async () => {
@@ -73,14 +97,22 @@ app.whenReady().then(async () => {
   createTray();
 });
 
-ipcMain.handle('get-bootstrap', () => ({
-  scenes: config.scenes,
-  controllers: config.controllers.map(({ script, args, ...safe }) => safe),
-  state: orchestrator.publicState(),
-  api: { host: config.api.host, port: config.api.port, lanEnabled: config.api.host !== '127.0.0.1' },
-  launchAtLogin: app.getLoginItemSettings().openAtLogin
-}));
+ipcMain.handle('get-bootstrap', () => publicConfig());
 ipcMain.handle('apply-scene', (_event, sceneId) => orchestrator.applyScene(sceneId));
+ipcMain.handle('save-scenes', (_event, scenes) => {
+  if (!Array.isArray(scenes)) throw new Error('Lista de cenas inválida.');
+  const sanitizedScenes = scenes.map(({ id, name, color, brightness }) => ({ id, name, color, brightness }));
+  return persistConfig({ ...config, scenes: sanitizedScenes });
+});
+ipcMain.handle('set-controller-enabled', (_event, controllerId, enabled) => {
+  const controllers = config.controllers.map((controller) => (
+    controller.id === controllerId ? { ...controller, enabled: Boolean(enabled) } : controller
+  ));
+  if (!controllers.some((controller) => controller.id === controllerId)) {
+    throw new Error('Controlador não encontrado.');
+  }
+  return persistConfig({ ...config, controllers });
+});
 ipcMain.handle('set-launch-at-login', (_event, enabled) => {
   app.setLoginItemSettings({ openAtLogin: Boolean(enabled), openAsHidden: true });
   return app.getLoginItemSettings().openAtLogin;

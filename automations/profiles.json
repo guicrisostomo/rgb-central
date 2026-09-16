@@ -26,7 +26,7 @@
   "lianli": {
     "enabled": false,
     "processName": "L-Connect 3",
-    "executablePath": "C:\\Program Files\\Lian-Li\\L-Connect 3\\L-Connect 3.exe",
+    "executablePath": "",
     "profiles": { "green": "Verde", "red": "Vermelho", "blue": "Azul", "white": "Branco", "work": "Trabalho", "off": "Desligado" }
   }
 }

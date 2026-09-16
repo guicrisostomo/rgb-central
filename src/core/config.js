@@ -3,6 +3,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const SCENE_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+const CONTROLLER_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -23,19 +24,33 @@ function validateConfig(config) {
   if (!Array.isArray(config.scenes) || config.scenes.length === 0) {
     throw new Error('Cadastre pelo menos uma cena.');
   }
+  if (config.scenes.length > 30) throw new Error('O limite é de 30 cenas.');
   const ids = new Set();
   for (const scene of config.scenes) {
     if (!SCENE_ID.test(scene.id || '')) throw new Error(`ID de cena inválido: ${scene.id}`);
     if (ids.has(scene.id)) throw new Error(`Cena duplicada: ${scene.id}`);
     ids.add(scene.id);
+    if (typeof scene.name !== 'string' || !scene.name.trim() || scene.name.length > 60) {
+      throw new Error(`Nome inválido na cena ${scene.id}.`);
+    }
     if (!/^#[0-9a-f]{6}$/i.test(scene.color || '')) throw new Error(`Cor inválida na cena ${scene.id}`);
     if (!Number.isInteger(scene.brightness) || scene.brightness < 0 || scene.brightness > 100) {
       throw new Error(`Brilho inválido na cena ${scene.id}`);
     }
   }
   if (!Array.isArray(config.controllers)) throw new Error('Lista de controladores inválida.');
+  const controllerIds = new Set();
   for (const controller of config.controllers) {
     if (!controller.id || !controller.name) throw new Error('Controlador sem ID ou nome.');
+    if (!CONTROLLER_ID.test(controller.id)) throw new Error(`ID de controlador inválido: ${controller.id}`);
+    if (controllerIds.has(controller.id)) throw new Error(`Controlador duplicado: ${controller.id}`);
+    controllerIds.add(controller.id);
+    if (typeof controller.name !== 'string' || controller.name.length > 80) {
+      throw new Error(`Nome inválido no controlador ${controller.id}.`);
+    }
+    if (typeof controller.enabled !== 'boolean') {
+      throw new Error(`Estado inválido no controlador ${controller.id}.`);
+    }
     if (!['simulation', 'powershell'].includes(controller.type)) {
       throw new Error(`Tipo não permitido no controlador ${controller.id}.`);
     }
@@ -73,4 +88,15 @@ function loadConfig(configPath) {
   return validateConfig(readJson(configPath));
 }
 
-module.exports = { ensureUserFiles, loadConfig, validateConfig };
+function saveConfig(configPath, config) {
+  const validated = validateConfig(config);
+  const temporaryPath = `${configPath}.tmp`;
+  fs.writeFileSync(temporaryPath, `${JSON.stringify(validated, null, 2)}\n`, {
+    encoding: 'utf8',
+    mode: 0o600
+  });
+  fs.renameSync(temporaryPath, configPath);
+  return validated;
+}
+
+module.exports = { ensureUserFiles, loadConfig, saveConfig, validateConfig };

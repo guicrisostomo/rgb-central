@@ -20,8 +20,11 @@
 
       <section>
         <div class="section-title">
-          <h2>Cenas</h2>
-          <span>Clique uma vez para aplicar em todos os controladores ativos.</span>
+          <div>
+            <h2>Cenas</h2>
+            <span>Clique uma vez para aplicar em todos os controladores ativos.</span>
+          </div>
+          <button id="edit-scenes" class="secondary">Personalizar cenas</button>
         </div>
         <div id="scenes" class="scene-grid"></div>
       </section>
@@ -49,6 +52,26 @@
         </div>
       </section>
     </main>
+
+    <dialog id="scene-dialog">
+      <form id="scene-form" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">CONFIGURAÇÃO LOCAL</p>
+            <h2>Personalizar cenas</h2>
+            <p>Crie combinações próprias de nome, cor e brilho.</p>
+          </div>
+          <button id="close-scenes" class="icon-button" value="cancel" aria-label="Fechar" type="button">×</button>
+        </div>
+        <div id="scene-editor" class="scene-editor"></div>
+        <button id="add-scene" class="secondary" type="button">Adicionar cena</button>
+        <p id="scene-error" class="form-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button id="cancel-scenes" class="secondary" type="button">Cancelar</button>
+          <button class="primary" type="submit">Salvar cenas</button>
+        </div>
+      </form>
+    </dialog>
     <script src="app.js"></script>
   </body>
 </html>

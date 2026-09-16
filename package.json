@@ -1,12 +1,13 @@
 {
   "name": "rgb-central",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Central segura para coordenar perfis RGB pelos softwares oficiais.",
   "main": "src/main.js",
   "type": "commonjs",
   "scripts": {
     "start": "electron .",
     "test": "node --test test/*.test.js",
+    "privacy-check": "node scripts/privacy-check.js",
     "dist:win": "electron-builder --win nsis portable"
   },
   "devDependencies": {
@@ -20,6 +21,7 @@
       "src/**/*",
       "config/**/*",
       "automations/**/*",
+      "scripts/**/*",
       "package.json"
     ],
     "extraResources": [

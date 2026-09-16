@@ -2,7 +2,7 @@ param(
   [Parameter(Mandatory = $true)][ValidatePattern('^[a-z0-9_-]+$')][string]$SceneId,
   [Parameter(Mandatory = $true)][ValidatePattern('^#[0-9a-fA-F]{6}$')][string]$Color,
   [Parameter(Mandatory = $true)][ValidateRange(0, 100)][int]$Brightness,
-  [Parameter(Mandatory = $true)][ValidateSet('corsair', 'hyperx', 'redragon', 'gigabyte', 'lianli')][string]$Vendor
+  [Parameter(Mandatory = $true)][ValidatePattern('^[a-z0-9_-]{1,40}$')][string]$Vendor
 )
 
 $ErrorActionPreference = 'Stop'

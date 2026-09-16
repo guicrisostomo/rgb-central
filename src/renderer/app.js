@@ -1,4 +1,5 @@
 let model;
+let draftScenes = [];
 
 function appendTextElement(parent, tag, text, className) {
   const element = document.createElement(tag);
@@ -10,6 +11,69 @@ function appendTextElement(parent, tag, text, className) {
 
 function controllerResult(id) {
   return model.state.results.find((item) => item.id === id);
+}
+
+function sceneEditorRow(scene, index) {
+  const row = document.createElement('div');
+  row.className = 'scene-editor-row';
+
+  const color = document.createElement('input');
+  color.type = 'color';
+  color.value = scene.color;
+  color.setAttribute('aria-label', `Cor da cena ${index + 1}`);
+  color.addEventListener('input', () => { draftScenes[index].color = color.value; });
+
+  const details = document.createElement('div');
+  details.className = 'scene-editor-details';
+  const name = document.createElement('input');
+  name.type = 'text';
+  name.maxLength = 60;
+  name.required = true;
+  name.value = scene.name;
+  name.placeholder = 'Nome da cena';
+  name.setAttribute('aria-label', `Nome da cena ${index + 1}`);
+  name.addEventListener('input', () => { draftScenes[index].name = name.value; });
+
+  const brightnessLine = document.createElement('label');
+  brightnessLine.className = 'brightness-line';
+  const brightness = document.createElement('input');
+  brightness.type = 'range';
+  brightness.min = '0';
+  brightness.max = '100';
+  brightness.value = String(scene.brightness);
+  const brightnessValue = document.createElement('span');
+  brightnessValue.textContent = `${scene.brightness}%`;
+  brightness.addEventListener('input', () => {
+    draftScenes[index].brightness = Number(brightness.value);
+    brightnessValue.textContent = `${brightness.value}%`;
+  });
+  brightnessLine.append('Brilho', brightness, brightnessValue);
+  details.append(name, brightnessLine);
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'icon-button danger';
+  remove.textContent = '×';
+  remove.setAttribute('aria-label', `Remover ${scene.name}`);
+  remove.addEventListener('click', () => {
+    if (draftScenes.length === 1) return;
+    draftScenes.splice(index, 1);
+    renderSceneEditor();
+  });
+
+  row.append(color, details, remove);
+  return row;
+}
+
+function renderSceneEditor() {
+  document.querySelector('#scene-editor').replaceChildren(...draftScenes.map(sceneEditorRow));
+}
+
+function openSceneEditor() {
+  draftScenes = model.scenes.map((scene) => ({ ...scene }));
+  document.querySelector('#scene-error').textContent = '';
+  renderSceneEditor();
+  document.querySelector('#scene-dialog').showModal();
 }
 
 function render() {
@@ -39,9 +103,28 @@ function render() {
     const item = document.createElement('div');
     item.className = 'controller';
     const stateClass = result ? (result.ok ? 'ok' : 'fail') : '';
-    const stateLabel = !controller.enabled ? 'Desativado' : result ? (result.ok ? 'Aplicado' : 'Falhou') : 'Aguardando';
+    const stateLabel = result ? (result.ok ? 'Aplicado' : 'Falhou') : controller.enabled ? 'Ativo' : 'Desativado';
     appendTextElement(item, 'strong', controller.name);
-    appendTextElement(item, 'span', stateLabel, `state ${stateClass}`);
+    const toggle = document.createElement('label');
+    toggle.className = 'controller-toggle';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = controller.enabled;
+    checkbox.setAttribute('aria-label', `Ativar ${controller.name}`);
+    checkbox.addEventListener('change', async () => {
+      checkbox.disabled = true;
+      try {
+        model = await window.rgbCentral.setControllerEnabled(controller.id, checkbox.checked);
+        render();
+      } catch (error) {
+        checkbox.checked = !checkbox.checked;
+        window.alert(error.message);
+      } finally {
+        checkbox.disabled = false;
+      }
+    });
+    toggle.append(checkbox, appendTextElement(document.createDocumentFragment(), 'span', stateLabel, `state ${stateClass}`));
+    item.appendChild(toggle);
     appendTextElement(item, 'small', result?.message || controller.description || '');
     return item;
   }));
@@ -63,7 +146,33 @@ async function start() {
   });
   document.querySelector('#open-config').addEventListener('click', () => window.rgbCentral.openConfig());
   document.querySelector('#open-automations').addEventListener('click', () => window.rgbCentral.openAutomations());
+  document.querySelector('#edit-scenes').addEventListener('click', openSceneEditor);
+  document.querySelector('#close-scenes').addEventListener('click', () => document.querySelector('#scene-dialog').close());
+  document.querySelector('#cancel-scenes').addEventListener('click', () => document.querySelector('#scene-dialog').close());
+  document.querySelector('#add-scene').addEventListener('click', () => {
+    if (draftScenes.length >= 30) return;
+    draftScenes.push({
+      id: `scene_${Date.now().toString(36)}`,
+      name: `Cena ${draftScenes.length + 1}`,
+      color: '#31e981',
+      brightness: 70
+    });
+    renderSceneEditor();
+  });
+  document.querySelector('#scene-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const error = document.querySelector('#scene-error');
+    error.textContent = '';
+    try {
+      model = await window.rgbCentral.saveScenes(draftScenes);
+      document.querySelector('#scene-dialog').close();
+      render();
+    } catch (cause) {
+      error.textContent = cause.message;
+    }
+  });
   window.rgbCentral.onState((state) => { model.state = state; render(); });
+  window.rgbCentral.onConfig((snapshot) => { model = snapshot; render(); });
   render();
 }
 

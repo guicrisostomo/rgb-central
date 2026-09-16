@@ -23,7 +23,7 @@
     {
       "id": "corsair",
       "name": "Corsair iCUE",
-      "description": "RAM e fans Corsair pelos perfis do iCUE.",
+      "description": "Modelo opcional para dispositivos compatíveis com iCUE.",
       "type": "powershell",
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "corsair"],
@@ -33,7 +33,7 @@
     {
       "id": "hyperx",
       "name": "HyperX NGENUITY",
-      "description": "Teclado HyperX pelos perfis do NGENUITY.",
+      "description": "Modelo opcional para dispositivos compatíveis com NGENUITY.",
       "type": "powershell",
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "hyperx"],
@@ -43,7 +43,7 @@
     {
       "id": "redragon",
       "name": "Redragon",
-      "description": "Mouse pelos perfis do software oficial.",
+      "description": "Modelo opcional para dispositivos com software oficial Redragon.",
       "type": "powershell",
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "redragon"],
@@ -53,7 +53,7 @@
     {
       "id": "gigabyte",
       "name": "Gigabyte RGB Fusion",
-      "description": "Water cooler Arctic e ARGB da placa-mãe.",
+      "description": "Modelo opcional para dispositivos compatíveis com RGB Fusion.",
       "type": "powershell",
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "gigabyte"],
@@ -63,7 +63,7 @@
     {
       "id": "lianli",
       "name": "Lian Li L-Connect 3",
-      "description": "Dispositivos Lian Li pelos perfis do L-Connect 3.",
+      "description": "Modelo opcional para dispositivos compatíveis com L-Connect 3.",
       "type": "powershell",
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "lianli"],
