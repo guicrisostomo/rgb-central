@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Arquivos criados no computador do usuário
+config.json
+profiles.local.json
+rgb-central-diagnostico.txt
+.env
+.env.*
+!.env.example

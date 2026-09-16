@@ -1,0 +1,27 @@
+# Coloque o token em secrets.yaml:
+# rgb_central_token: "o token aleatório existente em config.json"
+
+rest_command:
+  rgb_central_green:
+    url: "http://IP_DO_PC:47831/api/scenes/green/apply"
+    method: post
+    headers:
+      authorization: "Bearer {{ rgb_central_token }}"
+      content-type: "application/json"
+    timeout: 30
+
+  rgb_central_work:
+    url: "http://IP_DO_PC:47831/api/scenes/work/apply"
+    method: post
+    headers:
+      authorization: "Bearer {{ rgb_central_token }}"
+      content-type: "application/json"
+    timeout: 30
+
+  rgb_central_off:
+    url: "http://IP_DO_PC:47831/api/scenes/off/apply"
+    method: post
+    headers:
+      authorization: "Bearer {{ rgb_central_token }}"
+      content-type: "application/json"
+    timeout: 30

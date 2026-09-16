@@ -1,0 +1,26 @@
+{
+  "corsair": {
+    "enabled": false,
+    "processName": "iCUE",
+    "executablePath": "",
+    "profiles": { "green": "RGB Central - Verde", "red": "RGB Central - Vermelho", "blue": "RGB Central - Azul", "white": "RGB Central - Branco", "work": "RGB Central - Trabalho", "off": "RGB Central - Desligado" }
+  },
+  "hyperx": {
+    "enabled": false,
+    "processName": "NGenuity2",
+    "executablePath": "",
+    "profiles": { "green": "Verde", "red": "Vermelho", "blue": "Azul", "white": "Branco", "work": "Trabalho", "off": "Desligado" }
+  },
+  "redragon": {
+    "enabled": false,
+    "processName": "",
+    "executablePath": "",
+    "profiles": { "green": "Verde", "red": "Vermelho", "blue": "Azul", "white": "Branco", "work": "Trabalho", "off": "Desligado" }
+  },
+  "gigabyte": {
+    "enabled": false,
+    "processName": "RGBFusion",
+    "executablePath": "",
+    "profiles": { "green": "Verde", "red": "Vermelho", "blue": "Azul", "white": "Branco", "work": "Trabalho", "off": "Desligado" }
+  }
+}

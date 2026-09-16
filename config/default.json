@@ -1,0 +1,64 @@
+{
+  "api": {
+    "host": "127.0.0.1",
+    "port": 47831,
+    "token": "generated-on-first-run"
+  },
+  "scenes": [
+    { "id": "green", "name": "Verde", "color": "#00ff66", "brightness": 70 },
+    { "id": "red", "name": "Vermelho", "color": "#ff2638", "brightness": 70 },
+    { "id": "blue", "name": "Azul", "color": "#287dff", "brightness": 70 },
+    { "id": "white", "name": "Branco", "color": "#ffffff", "brightness": 60 },
+    { "id": "work", "name": "Trabalho", "color": "#18d66b", "brightness": 30 },
+    { "id": "off", "name": "Apagar", "color": "#000000", "brightness": 0 }
+  ],
+  "controllers": [
+    {
+      "id": "simulation",
+      "name": "Modo de demonstração",
+      "description": "Confirma o funcionamento sem tocar no hardware.",
+      "type": "simulation",
+      "enabled": true
+    },
+    {
+      "id": "corsair",
+      "name": "Corsair iCUE",
+      "description": "RAM e fans Corsair pelos perfis do iCUE.",
+      "type": "powershell",
+      "script": "official-app-profile.ps1",
+      "args": ["-Vendor", "corsair"],
+      "enabled": false,
+      "timeoutMs": 20000
+    },
+    {
+      "id": "hyperx",
+      "name": "HyperX NGENUITY",
+      "description": "Teclado HyperX pelos perfis do NGENUITY.",
+      "type": "powershell",
+      "script": "official-app-profile.ps1",
+      "args": ["-Vendor", "hyperx"],
+      "enabled": false,
+      "timeoutMs": 20000
+    },
+    {
+      "id": "redragon",
+      "name": "Redragon",
+      "description": "Mouse pelos perfis do software oficial.",
+      "type": "powershell",
+      "script": "official-app-profile.ps1",
+      "args": ["-Vendor", "redragon"],
+      "enabled": false,
+      "timeoutMs": 20000
+    },
+    {
+      "id": "gigabyte",
+      "name": "Gigabyte RGB Fusion",
+      "description": "Water cooler Arctic e ARGB da placa-mãe.",
+      "type": "powershell",
+      "script": "official-app-profile.ps1",
+      "args": ["-Vendor", "gigabyte"],
+      "enabled": false,
+      "timeoutMs": 20000
+    }
+  ]
+}

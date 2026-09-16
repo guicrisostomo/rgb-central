@@ -1,0 +1,48 @@
+{
+  "name": "rgb-central",
+  "version": "0.1.0",
+  "description": "Central segura para coordenar perfis RGB pelos softwares oficiais.",
+  "main": "src/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist:win": "electron-builder --win nsis portable"
+  },
+  "devDependencies": {
+    "electron": "^38.1.2",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "io.github.rgbcentral.app",
+    "productName": "RGB Central",
+    "files": [
+      "src/**/*",
+      "config/**/*",
+      "automations/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "config",
+        "to": "config"
+      },
+      {
+        "from": "automations",
+        "to": "automations"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

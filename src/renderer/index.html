@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
+    <title>RGB Central</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">CONTROLE LOCAL E SEGURO</p>
+          <h1>RGB Central</h1>
+          <p class="subtitle">Uma cena para o setup inteiro, preservando os softwares oficiais.</p>
+        </div>
+        <span id="status-pill" class="pill">Pronto</span>
+      </header>
+
+      <section>
+        <div class="section-title">
+          <h2>Cenas</h2>
+          <span>Clique uma vez para aplicar em todos os controladores ativos.</span>
+        </div>
+        <div id="scenes" class="scene-grid"></div>
+      </section>
+
+      <section>
+        <div class="section-title">
+          <h2>Controladores</h2>
+          <span id="controller-summary"></span>
+        </div>
+        <div id="controllers" class="controller-list"></div>
+      </section>
+
+      <section class="settings">
+        <div>
+          <h2>Inicialização e integração</h2>
+          <p id="api-address"></p>
+        </div>
+        <label class="switch-row">
+          <input id="launch-at-login" type="checkbox" />
+          <span>Iniciar com o Windows</span>
+        </label>
+        <div class="actions">
+          <button id="open-config" class="secondary">Abrir configuração</button>
+          <button id="open-automations" class="secondary">Abrir automações</button>
+        </div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
