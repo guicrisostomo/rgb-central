@@ -11,13 +11,13 @@ test('configuração padrão é válida', () => {
 });
 
 test('rejeita cena com ID perigoso', () => {
-  const value = { configVersion: 2, api: { host: '127.0.0.1', port: 47831, token: '' }, scenes: [{ id: '../x', name: 'Inválida', color: '#ffffff', brightness: 1 }], controllers: [] };
+  const value = { configVersion: 3, api: { host: '127.0.0.1', port: 47831, token: '' }, scenes: [{ id: '../x', name: 'Inválida', color: '#ffffff', brightness: 1 }], controllers: [] };
   assert.throws(() => validateConfig(value), /ID de cena inválido/);
 });
 
 test('não permite API na rede sem token forte', () => {
   const value = {
-    configVersion: 2,
+    configVersion: 3,
     api: { host: '0.0.0.0', port: 47831, token: 'curto' },
     scenes: [{ id: 'green', name: 'Verde', color: '#00ff00', brightness: 70 }],
     controllers: []
@@ -27,7 +27,7 @@ test('não permite API na rede sem token forte', () => {
 
 test('aceita cenas personalizadas sem depender de fabricante', () => {
   const value = {
-    configVersion: 2,
+    configVersion: 3,
     api: { host: '127.0.0.1', port: 47831, token: '' },
     scenes: [{ id: 'reading', name: 'Leitura', color: '#f2c94c', brightness: 42 }],
     controllers: [{ id: 'demo', name: 'Demonstração', type: 'simulation', configured: true, enabled: true }]
@@ -39,7 +39,7 @@ test('salva e recarrega configuração validada', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rgb-central-'));
   const configPath = path.join(directory, 'config.json');
   const value = {
-    configVersion: 2,
+    configVersion: 3,
     api: { host: '127.0.0.1', port: 47831, token: '' },
     scenes: [{ id: 'custom', name: 'Minha cena', color: '#123abc', brightness: 55 }],
     controllers: [{ id: 'demo', name: 'Demonstração', type: 'simulation', configured: true, enabled: false }]
@@ -67,10 +67,35 @@ test('migra configuração antiga desativando adaptadores não calibrados', () =
   try {
     ensureUserFiles({ userDataPath: directory, resourcesPath: path.join(__dirname, '..') });
     const migrated = loadConfig(configPath);
-    assert.equal(migrated.configVersion, 2);
+    assert.equal(migrated.configVersion, 3);
     assert.equal(migrated.controllers[0].configured, true);
     assert.equal(migrated.controllers[1].configured, false);
     assert.equal(migrated.controllers[1].enabled, false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('migra HyperX e Redragon para adaptadores testáveis sem ativá-los', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rgb-central-adapters-'));
+  const configPath = path.join(directory, 'config.json');
+  const oldConfig = {
+    configVersion: 2,
+    api: { host: '127.0.0.1', port: 47831, token: 'token-local' },
+    scenes: [{ id: 'green', name: 'Verde', color: '#00ff00', brightness: 70 }],
+    controllers: [
+      { id: 'hyperx', name: 'HyperX', type: 'powershell', script: 'official-app-profile.ps1', args: ['-Vendor', 'hyperx'], configured: false, enabled: false },
+      { id: 'redragon', name: 'Redragon', type: 'powershell', script: 'official-app-profile.ps1', args: ['-Vendor', 'redragon'], configured: false, enabled: false }
+    ]
+  };
+  fs.writeFileSync(configPath, JSON.stringify(oldConfig), 'utf8');
+  try {
+    ensureUserFiles({ userDataPath: directory, resourcesPath: path.join(__dirname, '..') });
+    const migrated = loadConfig(configPath);
+    assert.equal(migrated.controllers[0].script, 'hyperx-color.ps1');
+    assert.deepEqual(migrated.controllers[0].args, []);
+    assert.equal(migrated.controllers[1].script, 'redragon-color.ps1');
+    assert.equal(migrated.controllers[1].configured, false);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

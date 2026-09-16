@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 
 const SCENE_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 const CONTROLLER_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
-const CURRENT_CONFIG_VERSION = 2;
+const CURRENT_CONFIG_VERSION = 3;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -96,8 +96,10 @@ function ensureUserFiles({ userDataPath, resourcesPath }) {
   for (const managedScript of [
     'diagnostics.ps1',
     'inspect-rgb-ui.ps1',
+    'hyperx-color.ps1',
     'official-app-profile.ps1',
-    'powershell-runner.ps1'
+    'powershell-runner.ps1',
+    'redragon-color.ps1'
   ]) {
     fs.copyFileSync(path.join(sourceAutomations, managedScript), path.join(userAutomations, managedScript));
   }
@@ -105,11 +107,18 @@ function ensureUserFiles({ userDataPath, resourcesPath }) {
   const existing = readJson(configPath);
   if (existing.configVersion !== CURRENT_CONFIG_VERSION) {
     existing.configVersion = CURRENT_CONFIG_VERSION;
-    existing.controllers = (existing.controllers || []).map((controller) => ({
-      ...controller,
-      configured: controller.type === 'simulation',
-      enabled: controller.type === 'simulation' ? controller.enabled : false
-    }));
+    existing.controllers = (existing.controllers || []).map((controller) => {
+      const knownScripts = {
+        hyperx: 'hyperx-color.ps1',
+        redragon: 'redragon-color.ps1'
+      };
+      return {
+        ...controller,
+        ...(knownScripts[controller.id] ? { script: knownScripts[controller.id], args: [] } : {}),
+        configured: controller.type === 'simulation',
+        enabled: controller.type === 'simulation' ? controller.enabled : false
+      };
+    });
     saveConfig(configPath, existing);
   }
   return { configPath, automationRoot: path.join(userDataPath, 'automations') };

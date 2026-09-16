@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('rgbCentral', {
   setLaunchAtLogin: (enabled) => ipcRenderer.invoke('set-launch-at-login', enabled),
   saveAppSettings: (settings) => ipcRenderer.invoke('save-app-settings', settings),
   runSetupTool: (toolId) => ipcRenderer.invoke('run-setup-tool', toolId),
+  testController: (controllerId) => ipcRenderer.invoke('test-controller', controllerId),
   openSetupOutput: (toolId) => ipcRenderer.invoke('open-setup-output', toolId),
   copyHomeAssistantConfig: () => ipcRenderer.invoke('copy-home-assistant-config'),
   openConfig: () => ipcRenderer.invoke('open-config'),

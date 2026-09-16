@@ -5,7 +5,7 @@ const path = require('node:path');
 const { promisify } = require('node:util');
 const { execFile } = require('node:child_process');
 const { ensureUserFiles, loadConfig, saveConfig } = require('./core/config');
-const { Orchestrator } = require('./core/orchestrator');
+const { Orchestrator, executePowerShell } = require('./core/orchestrator');
 const { createApiServer } = require('./core/api-server');
 const { buildHomeAssistantConfig, normalizeNetworkSettings } = require('./core/integrations');
 
@@ -14,6 +14,7 @@ const SETUP_TOOLS = {
   diagnostics: { script: 'diagnostics.ps1', output: 'rgb-central-diagnostico.txt' },
   interface: { script: 'inspect-rgb-ui.ps1', output: 'rgb-central-interface.txt' }
 };
+const TESTABLE_CONTROLLERS = new Set(['hyperx', 'redragon']);
 
 let windowRef;
 let trayRef;
@@ -77,7 +78,10 @@ function refreshTrayMenu() {
 function publicConfig() {
   return {
     scenes: config.scenes,
-    controllers: config.controllers.map(({ script, args, ...safe }) => safe),
+    controllers: config.controllers.map(({ script, args, ...safe }) => ({
+      ...safe,
+      setupAvailable: TESTABLE_CONTROLLERS.has(safe.id)
+    })),
     state: orchestrator.publicState(),
     api: {
       host: config.api.host,
@@ -145,6 +149,24 @@ async function openSetupOutput(toolId) {
   return true;
 }
 
+async function testController(controllerId) {
+  if (!TESTABLE_CONTROLLERS.has(controllerId)) throw new Error('Este adaptador ainda não possui teste seguro.');
+  const controller = config.controllers.find((item) => item.id === controllerId);
+  if (!controller) throw new Error('Controlador não encontrado.');
+  const result = await executePowerShell(controller, {
+    id: 'adapter_test',
+    name: 'Teste do adaptador',
+    color: '#00ff67',
+    brightness: 70
+  }, paths.automationRoot);
+  if (!result.ok) throw new Error(result.message || 'O teste do adaptador falhou.');
+  const controllers = config.controllers.map((item) => (
+    item.id === controllerId ? { ...item, configured: true } : item
+  ));
+  const snapshot = persistConfig({ ...config, controllers });
+  return { snapshot, message: `${controller.name} preparado. Confirme se o dispositivo ficou verde e então ative-o.` };
+}
+
 function persistConfig(nextConfig) {
   const validated = saveConfig(paths.configPath, nextConfig);
   Object.assign(config, validated);
@@ -193,6 +215,7 @@ ipcMain.handle('set-launch-at-login', (_event, enabled) => {
 });
 ipcMain.handle('save-app-settings', (_event, settings) => saveAppSettings(settings));
 ipcMain.handle('run-setup-tool', (_event, toolId) => runSetupTool(toolId));
+ipcMain.handle('test-controller', (_event, controllerId) => testController(controllerId));
 ipcMain.handle('open-setup-output', (_event, toolId) => openSetupOutput(toolId));
 ipcMain.handle('copy-home-assistant-config', () => {
   if (config.api.host !== '0.0.0.0') {

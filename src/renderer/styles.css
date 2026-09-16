@@ -58,6 +58,7 @@ p { margin: 0; }
 .controller { display: grid; grid-template-columns: 1fr auto; gap: 8px 18px; align-items: center; padding: 15px 16px; border: 1px solid var(--border); background: var(--panel); border-radius: 12px; }
 .controller.needs-setup { border-left: 3px solid #856d2c; }
 .controller small { color: var(--muted); grid-column: 1 / -1; line-height: 1.45; }
+.controller-setup { grid-column: 1 / -1; justify-self: start; }
 .controller .state { color: var(--muted); font-size: 13px; }
 .controller-toggle { display: flex; align-items: center; gap: 8px; }
 .controller-toggle input { width: 17px; height: 17px; accent-color: var(--green); }

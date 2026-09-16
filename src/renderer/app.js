@@ -167,9 +167,32 @@ function renderControllers() {
     toggle.append(checkbox, state);
     item.appendChild(toggle);
     const description = !configured
-      ? `${controller.description || ''} Use as verificações guiadas acima e abaixo desta lista.`.trim()
+      ? controller.setupAvailable
+        ? `${controller.description || ''} Abra o aplicativo oficial antes do teste.`.trim()
+        : `${controller.description || ''} Adaptador seguro ainda indisponível.`.trim()
       : result?.message || controller.description || '';
     appendTextElement(item, 'small', description);
+    if (!configured && controller.setupAvailable) {
+      const setupButton = document.createElement('button');
+      setupButton.type = 'button';
+      setupButton.className = 'secondary controller-setup';
+      setupButton.textContent = 'Testar adaptador';
+      setupButton.addEventListener('click', async () => {
+        setupButton.disabled = true;
+        setupButton.textContent = 'Testando verde…';
+        try {
+          const response = await window.rgbCentral.testController(controller.id);
+          model = response.snapshot;
+          render();
+          window.alert(response.message);
+        } catch (error) {
+          setupButton.disabled = false;
+          setupButton.textContent = 'Testar adaptador';
+          window.alert(`Teste não concluído: ${error.message}`);
+        }
+      });
+      item.appendChild(setupButton);
+    }
     return item;
   }));
 }

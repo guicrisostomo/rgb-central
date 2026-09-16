@@ -26,6 +26,7 @@ Ao contrário de soluções que controlam os dispositivos diretamente, este proj
 - Gerador local da configuração do Home Assistant, copiada sem exibir o token na tela.
 - Controladores opcionais que podem ser ativados ou desativados individualmente.
 - Modelos de adaptadores para iCUE, NGENUITY, Redragon, RGB Fusion e L-Connect 3.
+- Adaptadores experimentais e opt-in para HyperX NGENUITY e Redragon, sempre testados individualmente antes da ativação.
 - Suporte a novos adaptadores por configuração, sem limitar o projeto a um setup específico.
 - Script de diagnóstico para identificar versões e caminhos instalados.
 
@@ -62,6 +63,10 @@ Na primeira execução, o aplicativo cria `config.json` e a pasta `automations` 
 As cenas podem ser personalizadas diretamente na interface. O usuário escolhe nome, cor e brilho, adiciona ou remove cenas e ativa somente os controladores que realmente utiliza. As telas **Automações** e **Configurações** reúnem as tarefas comuns sem exigir a edição de JSON ou a execução manual de scripts. Os fabricantes presentes na configuração inicial são modelos opcionais e começam desativados.
 
 Controladores ainda não calibrados aparecem como **Configuração necessária** e não podem ser ativados. Isso impede que um modelo incompleto tente controlar aplicativos ou hardware por engano.
+
+Quando um adaptador seguro está disponível, a tela **Automações** apresenta o botão **Testar adaptador**. O teste aplica verde a 70% somente naquele aplicativo. O controlador só é liberado depois de um teste bem-sucedido e ainda permanece desligado até o usuário ativá-lo.
+
+No NGENUITY, o RGB Central escolhe a cor disponível mais próxima dentro de uma tolerância segura. Cores sem aproximação razoável, como branco quando ele não existe na paleta, precisam ser adicionadas uma vez pelo usuário; o aplicativo não troca uma cor solicitada por outra muito diferente. O adaptador Redragon preenche os campos RGB do software oficial e confirma pelo botão Apply.
 
 Para integrar outra marca ou um script próprio, consulte [Criando adaptadores personalizados](docs/custom-adapters.md). O identificador do fabricante não é limitado às marcas fornecidas como exemplo.
 

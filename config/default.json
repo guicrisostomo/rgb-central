@@ -1,5 +1,5 @@
 {
-  "configVersion": 2,
+  "configVersion": 3,
   "api": {
     "host": "127.0.0.1",
     "port": 47831,
@@ -36,22 +36,22 @@
     {
       "id": "hyperx",
       "name": "HyperX NGENUITY",
-      "description": "Modelo opcional para dispositivos compatíveis com NGENUITY.",
+      "description": "Controle acessível de cor sólida pelo NGENUITY; requer teste inicial.",
       "type": "powershell",
       "configured": false,
-      "script": "official-app-profile.ps1",
-      "args": ["-Vendor", "hyperx"],
+      "script": "hyperx-color.ps1",
+      "args": [],
       "enabled": false,
       "timeoutMs": 20000
     },
     {
       "id": "redragon",
       "name": "Redragon",
-      "description": "Modelo opcional para dispositivos com software oficial Redragon.",
+      "description": "Controle de cor e brilho pelo software oficial Redragon; requer teste inicial.",
       "type": "powershell",
       "configured": false,
-      "script": "official-app-profile.ps1",
-      "args": ["-Vendor", "redragon"],
+      "script": "redragon-color.ps1",
+      "args": [],
       "enabled": false,
       "timeoutMs": 20000
     },

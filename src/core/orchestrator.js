@@ -98,4 +98,4 @@ class Orchestrator {
   }
 }
 
-module.exports = { Orchestrator, replaceTokens };
+module.exports = { Orchestrator, executePowerShell, replaceTokens };
