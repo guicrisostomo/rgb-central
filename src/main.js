@@ -159,7 +159,14 @@ async function testController(controllerId) {
     color: '#00ff67',
     brightness: 70
   }, paths.automationRoot);
-  if (!result.ok) throw new Error(result.message || 'O teste do adaptador falhou.');
+  if (!result.ok) {
+    const error = new Error(result.message || 'O teste do adaptador falhou.');
+    // O Electron registra automaticamente o stack no terminal. Para erros que
+    // vao para a interface, preserve apenas a mensagem ja sanitizada e evite
+    // expor o caminho local do projeto dentro do perfil do Windows.
+    error.stack = `Error: ${error.message}`;
+    throw error;
+  }
   const controllers = config.controllers.map((item) => (
     item.id === controllerId ? { ...item, configured: true } : item
   ));

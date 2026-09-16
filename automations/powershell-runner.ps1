@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 # O processo é iniciado com ExecutionPolicy Bypass somente para esta execução.
 # O aplicativo valida previamente que o script está dentro da pasta autorizada.

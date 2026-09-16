@@ -1,4 +1,4 @@
-param(
+﻿param(
   [ValidateRange(1, 10)][int]$MaxDepth = 8,
   [ValidateRange(100, 3000)][int]$MaxElements = 1500
 )

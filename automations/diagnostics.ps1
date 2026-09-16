@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Continue'
+﻿$ErrorActionPreference = 'Continue'
 $out = Join-Path ([Environment]::GetFolderPath('Desktop')) 'rgb-central-diagnostico.txt'
 $patterns = 'Corsair|iCUE|HyperX|NGENUITY|Redragon|Gigabyte|RGB Fusion|ARCTIC|L-Connect|Lian[ -]Li'
 $processPatterns = 'iCUE|NGenuity|HyperX|Redragon|RGBFusion|GCC|L-Connect'

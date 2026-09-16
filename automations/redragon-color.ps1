@@ -1,4 +1,4 @@
-param(
+﻿param(
   [Parameter(Mandatory = $true)][ValidatePattern('^[a-z0-9_-]+$')][string]$SceneId,
   [Parameter(Mandatory = $true)][ValidatePattern('^#[0-9a-fA-F]{6}$')][string]$Color,
   [Parameter(Mandatory = $true)][ValidateRange(0, 100)][int]$Brightness
@@ -122,11 +122,12 @@ if ($slider) {
   $sliderRect = Get-Rectangle $slider
   $sliderWidth = $sliderRect.Right - $sliderRect.Left
   $sliderHeight = $sliderRect.Bottom - $sliderRect.Top
-  $x = [math]::Round(8 + (($sliderWidth - 16) * $Brightness / 100))
-  $y = [math]::Max(1, [math]::Round($sliderHeight / 2))
-  $packedPoint = (($y -band 0xffff) -shl 16) -bor ($x -band 0xffff)
-  [void][RgbCentralRedragon]::SendMessage($slider, 0x0201, [IntPtr]1, [IntPtr]$packedPoint)
-  [void][RgbCentralRedragon]::SendMessage($slider, 0x0202, [IntPtr]::Zero, [IntPtr]$packedPoint)
+  $x = [int][math]::Round(8 + (($sliderWidth - 16) * $Brightness / 100))
+  $y = [int][math]::Max(1, [math]::Round($sliderHeight / 2))
+  $packedPoint = [int]((($y -band 0xffff) -shl 16) -bor ($x -band 0xffff))
+  $packedPointer = [IntPtr]::new([int64]$packedPoint)
+  [void][RgbCentralRedragon]::SendMessage($slider, 0x0201, [IntPtr]1, $packedPointer)
+  [void][RgbCentralRedragon]::SendMessage($slider, 0x0202, [IntPtr]::Zero, $packedPointer)
 }
 
 $handles = [RgbCentralRedragon]::Descendants($window)
