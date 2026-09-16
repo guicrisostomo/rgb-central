@@ -1,4 +1,5 @@
 {
+  "configVersion": 2,
   "api": {
     "host": "127.0.0.1",
     "port": 47831,
@@ -18,6 +19,7 @@
       "name": "Modo de demonstração",
       "description": "Confirma o funcionamento sem tocar no hardware.",
       "type": "simulation",
+      "configured": true,
       "enabled": true
     },
     {
@@ -25,6 +27,7 @@
       "name": "Corsair iCUE",
       "description": "Modelo opcional para dispositivos compatíveis com iCUE.",
       "type": "powershell",
+      "configured": false,
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "corsair"],
       "enabled": false,
@@ -35,6 +38,7 @@
       "name": "HyperX NGENUITY",
       "description": "Modelo opcional para dispositivos compatíveis com NGENUITY.",
       "type": "powershell",
+      "configured": false,
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "hyperx"],
       "enabled": false,
@@ -45,6 +49,7 @@
       "name": "Redragon",
       "description": "Modelo opcional para dispositivos com software oficial Redragon.",
       "type": "powershell",
+      "configured": false,
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "redragon"],
       "enabled": false,
@@ -55,6 +60,7 @@
       "name": "Gigabyte RGB Fusion",
       "description": "Modelo opcional para dispositivos compatíveis com RGB Fusion.",
       "type": "powershell",
+      "configured": false,
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "gigabyte"],
       "enabled": false,
@@ -65,6 +71,7 @@
       "name": "Lian Li L-Connect 3",
       "description": "Modelo opcional para dispositivos compatíveis com L-Connect 3.",
       "type": "powershell",
+      "configured": false,
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "lianli"],
       "enabled": false,

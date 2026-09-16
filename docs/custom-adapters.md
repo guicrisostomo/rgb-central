@@ -31,12 +31,13 @@ Abra o `config.json` pelo botão **Abrir configuração** e adicione um item a `
   "type": "powershell",
   "script": "meu-controlador.ps1",
   "args": [],
+  "configured": false,
   "enabled": false,
   "timeoutMs": 20000
 }
 ```
 
-Reinicie o RGB Central, teste o script isoladamente e só então ative o controlador pela interface.
+Reinicie o RGB Central e teste o script isoladamente. Depois da calibração, altere `configured` para `true`; somente então o controlador poderá ser ativado pela interface.
 
 ## Restrições de segurança
 

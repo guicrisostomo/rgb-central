@@ -57,6 +57,8 @@ Na primeira execução, o aplicativo cria `config.json` e a pasta `automations` 
 
 As cenas podem ser personalizadas diretamente na interface. O usuário escolhe nome, cor e brilho, adiciona ou remove cenas e ativa somente os controladores que realmente utiliza. Os fabricantes presentes na configuração inicial são modelos opcionais e começam desativados.
 
+Controladores ainda não calibrados aparecem como **Configuração necessária** e não podem ser ativados. Isso impede que um modelo incompleto tente controlar aplicativos ou hardware por engano.
+
 Para integrar outra marca ou um script próprio, consulte [Criando adaptadores personalizados](docs/custom-adapters.md). O identificador do fabricante não é limitado às marcas fornecidas como exemplo.
 
 ## Gerar instalador e versão portátil

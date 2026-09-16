@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 
 const SCENE_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 const CONTROLLER_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+const CURRENT_CONFIG_VERSION = 2;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -11,6 +12,9 @@ function readJson(filePath) {
 
 function validateConfig(config) {
   if (!config || typeof config !== 'object') throw new Error('Configuração inválida.');
+  if (config.configVersion !== CURRENT_CONFIG_VERSION) {
+    throw new Error('Versão da configuração inválida.');
+  }
   if (!config.api || typeof config.api !== 'object') throw new Error('Configuração da API ausente.');
   if (!['127.0.0.1', 'localhost', '::1', '0.0.0.0'].includes(config.api.host)) {
     throw new Error('Host da API inválido. Use loopback ou 0.0.0.0 para a rede local.');
@@ -51,6 +55,9 @@ function validateConfig(config) {
     if (typeof controller.enabled !== 'boolean') {
       throw new Error(`Estado inválido no controlador ${controller.id}.`);
     }
+    if (typeof controller.configured !== 'boolean') {
+      throw new Error(`Calibração inválida no controlador ${controller.id}.`);
+    }
     if (!['simulation', 'powershell'].includes(controller.type)) {
       throw new Error(`Tipo não permitido no controlador ${controller.id}.`);
     }
@@ -78,9 +85,33 @@ function ensureUserFiles({ userDataPath, resourcesPath }) {
   if (!fs.existsSync(configPath)) {
     const defaultConfig = readJson(path.join(sourceRoot, 'config', 'default.json'));
     defaultConfig.api.token = crypto.randomBytes(24).toString('hex');
-    fs.writeFileSync(configPath, `${JSON.stringify(defaultConfig, null, 2)}\n`, 'utf8');
+    fs.writeFileSync(configPath, `${JSON.stringify(defaultConfig, null, 2)}\n`, {
+      encoding: 'utf8',
+      mode: 0o600
+    });
   }
-  copyDirectory(path.join(sourceRoot, 'automations'), path.join(userDataPath, 'automations'));
+  const sourceAutomations = path.join(sourceRoot, 'automations');
+  const userAutomations = path.join(userDataPath, 'automations');
+  copyDirectory(sourceAutomations, userAutomations);
+  for (const managedScript of [
+    'diagnostics.ps1',
+    'inspect-rgb-ui.ps1',
+    'official-app-profile.ps1',
+    'powershell-runner.ps1'
+  ]) {
+    fs.copyFileSync(path.join(sourceAutomations, managedScript), path.join(userAutomations, managedScript));
+  }
+
+  const existing = readJson(configPath);
+  if (existing.configVersion !== CURRENT_CONFIG_VERSION) {
+    existing.configVersion = CURRENT_CONFIG_VERSION;
+    existing.controllers = (existing.controllers || []).map((controller) => ({
+      ...controller,
+      configured: controller.type === 'simulation',
+      enabled: controller.type === 'simulation' ? controller.enabled : false
+    }));
+    saveConfig(configPath, existing);
+  }
   return { configPath, automationRoot: path.join(userDataPath, 'automations') };
 }
 

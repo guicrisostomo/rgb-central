@@ -105,12 +105,14 @@ ipcMain.handle('save-scenes', (_event, scenes) => {
   return persistConfig({ ...config, scenes: sanitizedScenes });
 });
 ipcMain.handle('set-controller-enabled', (_event, controllerId, enabled) => {
+  const selected = config.controllers.find((controller) => controller.id === controllerId);
+  if (!selected) throw new Error('Controlador não encontrado.');
+  if (enabled && !selected.configured) {
+    throw new Error('Calibre o adaptador antes de ativar este controlador.');
+  }
   const controllers = config.controllers.map((controller) => (
     controller.id === controllerId ? { ...controller, enabled: Boolean(enabled) } : controller
   ));
-  if (!controllers.some((controller) => controller.id === controllerId)) {
-    throw new Error('Controlador não encontrado.');
-  }
   return persistConfig({ ...config, controllers });
 });
 ipcMain.handle('set-launch-at-login', (_event, enabled) => {

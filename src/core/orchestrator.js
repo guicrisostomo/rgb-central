@@ -11,21 +11,29 @@ function replaceTokens(value, scene) {
 function executePowerShell(controller, scene, automationRoot) {
   return new Promise((resolve) => {
     const scriptPath = path.resolve(automationRoot, controller.script);
+    const runnerPath = path.resolve(automationRoot, 'powershell-runner.ps1');
     const safeRoot = `${path.resolve(automationRoot)}${path.sep}`;
-    if (!scriptPath.startsWith(safeRoot)) {
+    if (!scriptPath.startsWith(safeRoot) || !runnerPath.startsWith(safeRoot)) {
       resolve({ ok: false, message: 'Script fora da pasta autorizada.' });
       return;
     }
+    const payload = Buffer.from(JSON.stringify({
+      scriptPath,
+      sceneId: scene.id,
+      color: scene.color,
+      brightness: scene.brightness,
+      extraArgs: (controller.args || []).map((arg) => replaceTokens(arg, scene))
+    }), 'utf8').toString('base64');
     const args = [
       '-NoLogo', '-NoProfile', '-NonInteractive',
-      '-ExecutionPolicy', 'RemoteSigned',
-      '-File', scriptPath,
-      '-SceneId', scene.id,
-      '-Color', scene.color,
-      '-Brightness', String(scene.brightness),
-      ...(controller.args || []).map((arg) => replaceTokens(arg, scene))
+      '-ExecutionPolicy', 'Bypass',
+      '-File', runnerPath
     ];
-    const child = spawn('powershell.exe', args, { windowsHide: true, shell: false });
+    const child = spawn('powershell.exe', args, {
+      windowsHide: true,
+      shell: false,
+      env: { ...process.env, RGB_CENTRAL_PAYLOAD: payload }
+    });
     let output = '';
     let error = '';
     const timeoutMs = Math.min(Math.max(controller.timeoutMs || 15000, 1000), 60000);

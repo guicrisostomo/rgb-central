@@ -100,16 +100,21 @@ function render() {
   const list = document.querySelector('#controllers');
   list.replaceChildren(...model.controllers.map((controller) => {
     const result = controllerResult(controller.id);
+    const configured = controller.configured;
     const item = document.createElement('div');
     item.className = 'controller';
     const stateClass = result ? (result.ok ? 'ok' : 'fail') : '';
-    const stateLabel = result ? (result.ok ? 'Aplicado' : 'Falhou') : controller.enabled ? 'Ativo' : 'Desativado';
+    const stateLabel = !configured
+      ? 'Configuração necessária'
+      : result ? (result.ok ? 'Aplicado' : 'Falhou') : controller.enabled ? 'Ativo' : 'Desativado';
     appendTextElement(item, 'strong', controller.name);
     const toggle = document.createElement('label');
     toggle.className = 'controller-toggle';
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = controller.enabled;
+    checkbox.disabled = !configured;
+    if (!configured) checkbox.title = 'Calibre o adaptador e marque configured=true no config.json.';
     checkbox.setAttribute('aria-label', `Ativar ${controller.name}`);
     checkbox.addEventListener('change', async () => {
       checkbox.disabled = true;
@@ -125,7 +130,10 @@ function render() {
     });
     toggle.append(checkbox, appendTextElement(document.createDocumentFragment(), 'span', stateLabel, `state ${stateClass}`));
     item.appendChild(toggle);
-    appendTextElement(item, 'small', result?.message || controller.description || '');
+    const description = !configured
+      ? `${controller.description || ''} Calibre o adaptador antes de ativá-lo.`.trim()
+      : result?.message || controller.description || '';
+    appendTextElement(item, 'small', description);
     return item;
   }));
 
