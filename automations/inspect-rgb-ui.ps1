@@ -63,6 +63,8 @@ $windows = $root.FindAll(
 )
 $count = 0
 $visitedWindowPids = [System.Collections.Generic.HashSet[int]]::new()
+$reportedElementPids = [System.Collections.Generic.HashSet[int]]::new()
+$windowWarnings = [System.Collections.Generic.List[string]]::new()
 
 function Clean-Text {
   param([string]$Value)
@@ -75,7 +77,11 @@ function Get-PatternNames {
   try {
     $names = @(
       $Element.GetSupportedPatterns() |
-        ForEach-Object { $_.ProgrammaticName -replace '^.*PatternIdentifiers\.', '' } |
+        ForEach-Object {
+          $_.ProgrammaticName `
+            -replace 'PatternIdentifiers\.Pattern$', '' `
+            -replace '^.*\.', ''
+        } |
         Sort-Object -Unique
     )
     return ($names -join ',')
@@ -158,6 +164,12 @@ foreach ($window in $windows) {
     try { $processName = (Get-Process -Id $window.Current.ProcessId).ProcessName } catch {}
     $safeWindowName = Clean-Text $window.Current.Name
     $lines.Add("=== UI Automation: $safeWindowName | Processo: $processName | PID: $($window.Current.ProcessId) ===")
+    $windowBounds = $window.Current.BoundingRectangle
+    if ($windowBounds.IsEmpty -or $windowBounds.X -lt -10000 -or $windowBounds.Y -lt -10000) {
+      $warning = "${processName}: janela minimizada, recolhida ou sem area visivel. Restaure-a na tela de iluminacao e repita."
+      $lines.Add("AVISO: $warning")
+      $windowWarnings.Add($warning)
+    }
     Add-ElementTree -Element $window -Depth 0 -Path '0'
     $lines.Add('')
 
@@ -179,6 +191,7 @@ foreach ($process in $targetProcesses) {
     )
     $elements = $root.FindAll([System.Windows.Automation.TreeScope]::Descendants, $condition)
     if ($elements.Count -eq 0) { continue }
+    [void]$reportedElementPids.Add($process.Id)
     $lines.Add("=== Elementos sem janela principal | Processo: $($process.ProcessName) | PID: $($process.Id) ===")
     $limit = [math]::Min($elements.Count, 250)
     for ($i = 0; $i -lt $limit; $i++) {
@@ -186,6 +199,21 @@ foreach ($process in $targetProcesses) {
     }
     $lines.Add('')
   } catch {}
+}
+
+foreach ($process in $targetProcesses) {
+  if ($visitedWindowPids.Contains($process.Id) -or $reportedElementPids.Contains($process.Id)) { continue }
+  $warning = "$($process.ProcessName): processo encontrado, mas nenhuma janela acessivel foi localizada. Abra a janela principal e repita."
+  $lines.Add("AVISO: $warning")
+  $windowWarnings.Add($warning)
+}
+
+if ($windowWarnings.Count -gt 0) {
+  $lines.Add('')
+  $lines.Add('=== Acoes necessarias antes de uma nova inspecao ===')
+  foreach ($warning in ($windowWarnings | Sort-Object -Unique)) {
+    $lines.Add("- $warning")
+  }
 }
 
 if ($count -eq 0) {
