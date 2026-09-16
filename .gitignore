@@ -7,6 +7,7 @@ dist/
 config.json
 profiles.local.json
 rgb-central-diagnostico.txt
+rgb-central-interface.txt
 .env
 .env.*
 !.env.example

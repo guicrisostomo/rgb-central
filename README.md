@@ -19,7 +19,7 @@ Ao contrário de soluções que controlam os dispositivos diretamente, este proj
 - API HTTP local para Home Assistant e outras automações.
 - Token aleatório criado na primeira execução.
 - Modo de demonstração que não toca no hardware.
-- Estrutura de adaptadores para iCUE, NGENUITY, Redragon e RGB Fusion.
+- Estrutura de adaptadores para iCUE, NGENUITY, Redragon, RGB Fusion e L-Connect 3.
 - Script de diagnóstico para identificar versões e caminhos instalados.
 
 ## Modelo de segurança
@@ -66,10 +66,12 @@ Os artefatos são gerados em `dist/`.
 2. Em cada aplicativo, crie os seis perfis descritos em `automations/profiles.json`.
 3. Execute `automations/diagnostics.ps1` no PowerShell.
 4. Revise o arquivo `rgb-central-diagnostico.txt` criado na Área de Trabalho.
-5. Implemente e teste a seleção de perfil do fabricante desejado.
-6. Somente depois altere `enabled` para `true` no controlador correspondente.
+5. Abra os aplicativos RGB e execute `automations/inspect-rgb-ui.ps1` para gerar uma árvore somente de leitura dos controles acessíveis.
+6. Revise o arquivo `rgb-central-interface.txt` criado na Área de Trabalho.
+7. Implemente e teste a seleção de perfil do fabricante desejado.
+8. Somente depois altere `enabled` para `true` no controlador correspondente.
 
-O diagnóstico não coleta senhas ou tokens. Entretanto, caminhos de instalação podem conter o nome da conta do Windows. **Revise e remova essas partes antes de anexar o diagnóstico a uma issue pública.** O arquivo de diagnóstico está incluído no `.gitignore`.
+O diagnóstico não coleta senhas ou tokens, e a inspeção não lê valores digitados em caixas de texto. Entretanto, caminhos e títulos de janela podem conter informações pessoais. **Revise e remova essas partes antes de anexar os arquivos a uma issue pública.** Os dois arquivos gerados estão incluídos no `.gitignore`.
 
 ## Home Assistant e Alexa
 

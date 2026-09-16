@@ -59,6 +59,16 @@
       "args": ["-Vendor", "gigabyte"],
       "enabled": false,
       "timeoutMs": 20000
+    },
+    {
+      "id": "lianli",
+      "name": "Lian Li L-Connect 3",
+      "description": "Dispositivos Lian Li pelos perfis do L-Connect 3.",
+      "type": "powershell",
+      "script": "official-app-profile.ps1",
+      "args": ["-Vendor", "lianli"],
+      "enabled": false,
+      "timeoutMs": 20000
     }
   ]
 }
