@@ -80,7 +80,7 @@ Os artefatos são gerados em `dist/`.
 2. Em cada aplicativo, crie os seis perfis descritos em `automations/profiles.json`.
 3. Abra **Automações** no RGB Central e clique em **Verificar programas**.
 4. Revise o arquivo `rgb-central-diagnostico.txt` criado na Área de Trabalho.
-5. Abra os aplicativos RGB e clique em **Inspecionar telas abertas** para gerar uma árvore somente de leitura dos controles acessíveis.
+5. Em cada aplicativo RGB, abra a tela de perfis ou iluminação e clique em **Inspecionar telas abertas** para gerar uma árvore somente de leitura dos controles acessíveis, com uma leitura Win32 de apoio.
 6. Revise o arquivo `rgb-central-interface.txt` criado na Área de Trabalho.
 7. Implemente e teste a seleção de perfil do fabricante desejado.
 8. Somente depois altere `enabled` para `true` no controlador correspondente.
