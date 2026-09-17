@@ -16,6 +16,7 @@ Ao contrário de soluções que controlam os dispositivos diretamente, este proj
 - Aplicativo Electron para Windows com ícone na bandeja.
 - Inicialização opcional com o Windows.
 - Resultado individual por controlador, sem esconder falhas.
+- Erros apresentados dentro do aplicativo com resumo, orientação prática e detalhes técnicos anonimizados e copiáveis.
 - API HTTP local para Home Assistant e outras automações.
 - Token aleatório criado na primeira execução.
 - Modo de demonstração que não toca no hardware.

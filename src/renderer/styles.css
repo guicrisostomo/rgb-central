@@ -115,6 +115,21 @@ button.primary { border: 0; background: var(--green); color: #07110b; font-weigh
 button:disabled { cursor: wait; opacity: .62; }
 dialog { width: min(700px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; border: 1px solid var(--border); border-radius: 18px; background: #10141b; color: var(--text); padding: 0; box-shadow: 0 30px 90px #000c; }
 dialog::backdrop { background: #05070abd; backdrop-filter: blur(5px); }
+.feedback-dialog { width: min(640px, calc(100vw - 32px)); }
+.feedback-content { display: grid; grid-template-columns: auto 1fr auto; gap: 15px; align-items: start; padding: 24px 24px 12px; }
+.feedback-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #482124; color: #ff9b9b; border: 1px solid #74383d; font-size: 20px; font-weight: 800; }
+.feedback-dialog.success .feedback-icon { background: #193221; color: #8cf2b2; border-color: #29573a; }
+.feedback-dialog.success #feedback-eyebrow { color: #70ed9e; }
+.feedback-copy { min-width: 0; }
+.feedback-copy h2 { margin-top: 3px; }
+.feedback-message { margin-top: 10px; color: var(--text); line-height: 1.55; white-space: pre-wrap; }
+.feedback-copy .notice { margin-top: 14px; }
+.feedback-close-icon { margin-top: -7px; margin-right: -7px; }
+.technical-details { margin-top: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: #0b0e13; }
+.technical-details summary { color: var(--muted); cursor: pointer; font-size: 13px; }
+.technical-details pre { max-height: 190px; overflow: auto; margin: 12px 0; padding: 11px; border-radius: 8px; background: #07090d; color: #c7d0dc; font: 11px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.feedback-actions { align-items: center; justify-content: space-between; padding: 10px 24px 22px; }
+.feedback-actions span { color: #8cf2b2; font-size: 12px; }
 #scene-form { padding: 24px; }
 .dialog-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 20px; }
 .dialog-header p:last-child { color: var(--muted); margin-top: 6px; }

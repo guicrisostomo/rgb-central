@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { Orchestrator, replaceTokens, sanitizePowerShellOutput } = require('../src/core/orchestrator');
+const { Orchestrator, replaceTokens, sanitizePowerShellOutput, summarizePowerShellError } = require('../src/core/orchestrator');
 
 test('substitui somente parâmetros conhecidos', () => {
   assert.equal(replaceTokens('{scene}:{color}:{brightness}', { id: 'green', color: '#00ff00', brightness: 70 }), 'green:#00ff00:70');
@@ -9,6 +9,11 @@ test('substitui somente parâmetros conhecidos', () => {
 test('oculta o usuário do Windows em erros do PowerShell', () => {
   const output = ['C:', 'Users', 'nome-pessoal', 'AppData', 'Roaming', 'rgb-central', 'script.ps1: falhou'].join('\\');
   assert.equal(sanitizePowerShellOutput(output), '%USERPROFILE%\\AppData\\Roaming\\rgb-central\\script.ps1: falhou');
+});
+
+test('resume erro do PowerShell sem caminho e metadados internos', () => {
+  const output = '%USERPROFILE%\\AppData\\Roaming\\rgb-central\\automations\\gigabyte.ps1 : O layout não foi reconhecido.\r\nNo arquivo:122 caractere:3\r\n+ throw';
+  assert.equal(summarizePowerShellError(output), 'O layout não foi reconhecido.');
 });
 
 test('aplica uma cena no modo simulação', async () => {

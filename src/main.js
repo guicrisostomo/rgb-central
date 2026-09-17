@@ -160,18 +160,17 @@ async function testController(controllerId) {
     brightness: 70
   }, paths.automationRoot);
   if (!result.ok) {
-    const error = new Error(result.message || 'O teste do adaptador falhou.');
-    // O Electron registra automaticamente o stack no terminal. Para erros que
-    // vao para a interface, preserve apenas a mensagem ja sanitizada e evite
-    // expor o caminho local do projeto dentro do perfil do Windows.
-    error.stack = `Error: ${error.message}`;
-    throw error;
+    return {
+      ok: false,
+      message: result.message || 'O teste do adaptador falhou.',
+      technical: result.technical || ''
+    };
   }
   const controllers = config.controllers.map((item) => (
     item.id === controllerId ? { ...item, configured: true } : item
   ));
   const snapshot = persistConfig({ ...config, controllers });
-  return { snapshot, message: `${controller.name} preparado. Confirme se o dispositivo ficou verde e então ative-o.` };
+  return { ok: true, snapshot, message: `${controller.name} preparado. Confirme se o dispositivo ficou verde e então ative-o.` };
 }
 
 function persistConfig(nextConfig) {
@@ -246,6 +245,12 @@ ipcMain.handle('copy-home-assistant-config', () => {
   });
   clipboard.writeText(value);
   return { ok: true, message: 'Configuração copiada. O token não foi mostrado na tela.' };
+});
+ipcMain.handle('copy-support-text', (_event, value) => {
+  const text = String(value || '').slice(0, 10000);
+  if (!text) throw new Error('Não há detalhes para copiar.');
+  clipboard.writeText(text);
+  return true;
 });
 ipcMain.handle('open-config', () => shell.openPath(paths.configPath));
 ipcMain.handle('open-automations', () => shell.openPath(paths.automationRoot));

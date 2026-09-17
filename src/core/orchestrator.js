@@ -17,6 +17,16 @@ function sanitizePowerShellOutput(value) {
     .slice(0, 500);
 }
 
+function summarizePowerShellError(value) {
+  const details = sanitizePowerShellOutput(value);
+  const firstLine = details.split(/\r?\n/).map((line) => line.trim()).find(Boolean) || 'A automação não pôde ser concluída.';
+  const scriptMessage = firstLine.match(/\.ps1\s*:\s*(.+)$/i);
+  return (scriptMessage ? scriptMessage[1] : firstLine)
+    .replace(/^Error invoking remote method '[^']+':\s*Error:\s*/i, '')
+    .replace(/^Error:\s*/i, '')
+    .slice(0, 280);
+}
+
 function executePowerShell(controller, scene, automationRoot) {
   return new Promise((resolve) => {
     const scriptPath = path.resolve(automationRoot, controller.script);
@@ -51,13 +61,19 @@ function executePowerShell(controller, scene, automationRoot) {
     child.stderr.on('data', (chunk) => { error += chunk.toString(); });
     child.on('error', (cause) => {
       clearTimeout(timer);
-      resolve({ ok: false, message: cause.message });
+      resolve({
+        ok: false,
+        message: summarizePowerShellError(cause.message),
+        technical: sanitizePowerShellOutput(cause.stack || cause.message)
+      });
     });
     child.on('close', (code) => {
       clearTimeout(timer);
+      const raw = code === 0 ? output : error || output || `Código ${code}`;
       resolve({
         ok: code === 0,
-        message: sanitizePowerShellOutput(code === 0 ? output : error || output || `Código ${code}`)
+        message: code === 0 ? sanitizePowerShellOutput(raw) : summarizePowerShellError(raw),
+        ...(code === 0 ? {} : { technical: sanitizePowerShellOutput(raw) })
       });
     });
   });
@@ -112,4 +128,4 @@ class Orchestrator {
   }
 }
 
-module.exports = { Orchestrator, executePowerShell, replaceTokens, sanitizePowerShellOutput };
+module.exports = { Orchestrator, executePowerShell, replaceTokens, sanitizePowerShellOutput, summarizePowerShellError };

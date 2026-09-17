@@ -1,5 +1,6 @@
 let model;
 let draftScenes = [];
+let feedbackSupportText = '';
 
 const VIEW_COPY = {
   overview: ['SEU SETUP', 'Visão geral', 'Aplique uma cor em todos os controladores ativos.'],
@@ -19,6 +20,84 @@ function setStatus(selector, message, failed = false) {
   const element = document.querySelector(selector);
   element.textContent = message;
   element.classList.toggle('error', failed);
+}
+
+function sanitizeErrorText(value) {
+  return String(value || '')
+    .replace(/[A-Za-z]:\\Users\\[^\\\r\n]+/gi, '%USERPROFILE%')
+    .replace(/^Error invoking remote method '[^']+':\s*Error:\s*/i, '')
+    .replace(/^Error:\s*/i, '')
+    .replaceAll('\u0000', '')
+    .trim();
+}
+
+function guidanceFor(message) {
+  const value = message.toLowerCase();
+  if (value.includes('layout') && value.includes('rgb fusion')) {
+    return 'Maximize o RGB Fusion, abra a tela B550M AORUS ELITE e deixe SYNC MODE, RGB, brilho e APPLY visíveis. Depois tente novamente.';
+  }
+  if (value.includes('rgb fusion')) return 'Abra o RGB Fusion na tela da placa-mãe e tente novamente.';
+  if (value.includes('icue') || value.includes('sdk')) return 'Abra o iCUE e confirme em Configurações → SDK que o iCUE SDK está ativado.';
+  if (value.includes('ngenuity')) return 'Abra o HyperX NGENUITY na tela de iluminação do teclado e tente novamente.';
+  if (value.includes('redragon')) return 'Abra o software Redragon na tela Lighting e tente novamente.';
+  if (value.includes('rede') || value.includes('porta') || value.includes('eaddrinuse')) return 'Confira a porta configurada e feche outro programa que possa estar usando o mesmo endereço.';
+  return 'Confira se o aplicativo oficial está aberto e tente novamente. Se o problema continuar, copie os detalhes técnicos.';
+}
+
+function normalizeError(error) {
+  const raw = sanitizeErrorText(error?.technical || error?.message || error);
+  const messageSource = sanitizeErrorText(error?.message || error);
+  const firstLine = messageSource.split(/\r?\n/).map((line) => line.trim()).find(Boolean) || 'Não foi possível concluir esta operação.';
+  const scriptMessage = firstLine.match(/\.ps1\s*:\s*(.+)$/i);
+  const message = (scriptMessage ? scriptMessage[1] : firstLine).slice(0, 320);
+  return {
+    message,
+    guidance: guidanceFor(message),
+    technical: raw && raw !== message ? raw : ''
+  };
+}
+
+function showFeedback({ title, message, guidance = '', technical = '', tone = 'error' }) {
+  const dialog = document.querySelector('#feedback-dialog');
+  if (dialog.open) dialog.close();
+  dialog.classList.toggle('success', tone === 'success');
+  document.querySelector('#feedback-icon').textContent = tone === 'success' ? '✓' : '!';
+  document.querySelector('#feedback-eyebrow').textContent = tone === 'success' ? 'CONCLUÍDO' : 'ATENÇÃO';
+  document.querySelector('#feedback-title').textContent = title;
+  document.querySelector('#feedback-message').textContent = message;
+  const guidanceElement = document.querySelector('#feedback-guidance');
+  guidanceElement.textContent = guidance;
+  guidanceElement.hidden = !guidance;
+  const details = document.querySelector('#feedback-details');
+  const cleanedTechnical = sanitizeErrorText(technical);
+  details.hidden = !cleanedTechnical;
+  details.open = false;
+  document.querySelector('#feedback-technical').textContent = cleanedTechnical;
+  document.querySelector('#feedback-copy-status').textContent = '';
+  feedbackSupportText = [title, message, guidance, cleanedTechnical].filter(Boolean).join('\n\n');
+  dialog.showModal();
+}
+
+function showError(error, title = 'Não foi possível concluir') {
+  const normalized = normalizeError(error);
+  showFeedback({ title, ...normalized, tone: 'error' });
+}
+
+function setupFeedbackDialog() {
+  const dialog = document.querySelector('#feedback-dialog');
+  const close = () => dialog.close();
+  document.querySelector('#close-feedback').addEventListener('click', close);
+  document.querySelector('#close-feedback-icon').addEventListener('click', close);
+  document.querySelector('#copy-feedback').addEventListener('click', async () => {
+    const status = document.querySelector('#feedback-copy-status');
+    status.textContent = 'Copiando…';
+    try {
+      await window.rgbCentral.copySupportText(feedbackSupportText);
+      status.textContent = 'Detalhes copiados.';
+    } catch (error) {
+      status.textContent = normalizeError(error).message;
+    }
+  });
 }
 
 function showView(name) {
@@ -114,8 +193,16 @@ function renderScenes() {
     appendTextElement(button, 'strong', scene.name);
     appendTextElement(button, 'small', `${scene.brightness}% de brilho`);
     button.addEventListener('click', async () => {
-      try { await window.rgbCentral.applyScene(scene.id); }
-      catch (error) { window.alert(error.message); }
+      try {
+        const response = await window.rgbCentral.applyScene(scene.id);
+        if (!response.ok) {
+          const failed = response.results.filter((item) => !item.ok);
+          showError({
+            message: failed[0]?.message || 'Um ou mais controladores não aceitaram a cena.',
+            technical: failed.map((item) => `${item.name}: ${item.technical || item.message}`).join('\n')
+          }, `A cena “${scene.name}” não foi aplicada por completo`);
+        }
+      } catch (error) { showError(error, `Não foi possível aplicar “${scene.name}”`); }
     });
     return button;
   }));
@@ -158,7 +245,7 @@ function renderControllers() {
         render();
       } catch (error) {
         checkbox.checked = !checkbox.checked;
-        window.alert(error.message);
+        showError(error, `Não foi possível alterar ${controller.name}`);
       } finally {
         checkbox.disabled = !controller.configured;
       }
@@ -186,13 +273,18 @@ function renderControllers() {
         setupButton.textContent = 'Testando verde…';
         try {
           const response = await window.rgbCentral.testController(controller.id);
+          if (!response.ok) {
+            showError(response, `Não foi possível testar ${controller.name}`);
+            return;
+          }
           model = response.snapshot;
           render();
-          window.alert(response.message);
+          showFeedback({ title: 'Adaptador preparado', message: response.message, tone: 'success' });
         } catch (error) {
+          showError(error, `Não foi possível testar ${controller.name}`);
+        } finally {
           setupButton.disabled = false;
           setupButton.textContent = 'Testar adaptador';
-          window.alert(`Teste não concluído: ${error.message}`);
         }
       });
       actions.appendChild(setupButton);
@@ -209,7 +301,7 @@ function renderControllers() {
           render();
         } catch (error) {
           ignoreButton.disabled = false;
-          window.alert(error.message);
+          showError(error, `Não foi possível ocultar ${controller.name}`);
         }
       });
       actions.appendChild(ignoreButton);
@@ -240,7 +332,7 @@ function renderControllers() {
         render();
       } catch (error) {
         restore.disabled = false;
-        window.alert(error.message);
+        showError(error, `Não foi possível restaurar ${controller.name}`);
       }
     });
     row.append(label, restore);
@@ -278,9 +370,9 @@ async function runTool(button) {
   button.textContent = 'Verificando…';
   try {
     const result = await window.rgbCentral.runSetupTool(button.dataset.tool);
-    window.alert(result.message);
+    showFeedback({ title: 'Verificação concluída', message: result.message, tone: 'success' });
   } catch (error) {
-    window.alert(`Não foi possível concluir: ${error.message}`);
+    showError(error);
   } finally {
     button.disabled = false;
     button.textContent = original;
@@ -288,6 +380,7 @@ async function runTool(button) {
 }
 
 async function start() {
+  setupFeedbackDialog();
   model = await window.rgbCentral.bootstrap();
   document.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', () => showView(button.dataset.view)));
   document.querySelectorAll('.navigate').forEach((button) => button.addEventListener('click', () => showView(button.dataset.target)));
@@ -295,7 +388,7 @@ async function start() {
   document.querySelectorAll('.tool-run').forEach((button) => button.addEventListener('click', () => runTool(button)));
   document.querySelectorAll('.tool-open').forEach((button) => button.addEventListener('click', async () => {
     try { await window.rgbCentral.openSetupOutput(button.dataset.tool); }
-    catch (error) { window.alert(error.message); }
+    catch (error) { showError(error, 'Não foi possível abrir o resultado'); }
   }));
   document.querySelector('#copy-home-assistant').addEventListener('click', async () => {
     setStatus('#integration-status', 'Copiando…');
@@ -303,7 +396,9 @@ async function start() {
       const result = await window.rgbCentral.copyHomeAssistantConfig();
       setStatus('#integration-status', result.message);
     } catch (error) {
-      setStatus('#integration-status', error.message, true);
+      const normalized = normalizeError(error);
+      setStatus('#integration-status', normalized.message, true);
+      showError(error, 'Não foi possível criar a integração');
     }
   });
   document.querySelector('#settings-form').addEventListener('submit', async (event) => {
@@ -321,13 +416,21 @@ async function start() {
       syncSettingsForm();
       setStatus('#settings-status', 'Configurações salvas com segurança.');
     } catch (error) {
-      setStatus('#settings-status', error.message, true);
+      const normalized = normalizeError(error);
+      setStatus('#settings-status', normalized.message, true);
+      showError(error, 'Não foi possível salvar as configurações');
     } finally {
       submit.disabled = false;
     }
   });
-  document.querySelector('#open-config').addEventListener('click', () => window.rgbCentral.openConfig());
-  document.querySelector('#open-automations').addEventListener('click', () => window.rgbCentral.openAutomations());
+  document.querySelector('#open-config').addEventListener('click', async () => {
+    try { await window.rgbCentral.openConfig(); }
+    catch (error) { showError(error, 'Não foi possível abrir a configuração'); }
+  });
+  document.querySelector('#open-automations').addEventListener('click', async () => {
+    try { await window.rgbCentral.openAutomations(); }
+    catch (error) { showError(error, 'Não foi possível abrir as automações'); }
+  });
   document.querySelector('#edit-scenes').addEventListener('click', openSceneEditor);
   document.querySelector('#close-scenes').addEventListener('click', () => document.querySelector('#scene-dialog').close());
   document.querySelector('#cancel-scenes').addEventListener('click', () => document.querySelector('#scene-dialog').close());
@@ -354,5 +457,5 @@ async function start() {
 
 start().catch((error) => {
   document.querySelector('#status-pill').textContent = 'Erro ao iniciar';
-  window.alert(error.message);
+  showError(error, 'O RGB Central não conseguiu iniciar');
 });

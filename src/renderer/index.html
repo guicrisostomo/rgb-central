@@ -108,6 +108,28 @@
       </main>
     </div>
 
+    <dialog id="feedback-dialog" class="feedback-dialog" aria-labelledby="feedback-title">
+      <div class="feedback-content">
+        <div class="feedback-icon" id="feedback-icon" aria-hidden="true">!</div>
+        <div class="feedback-copy">
+          <p id="feedback-eyebrow" class="eyebrow">ATENÇÃO</p>
+          <h2 id="feedback-title">Não foi possível concluir</h2>
+          <p id="feedback-message" class="feedback-message"></p>
+          <div id="feedback-guidance" class="notice neutral" hidden></div>
+          <details id="feedback-details" class="technical-details" hidden>
+            <summary>Detalhes técnicos</summary>
+            <pre id="feedback-technical"></pre>
+            <button id="copy-feedback" class="secondary" type="button">Copiar detalhes</button>
+          </details>
+        </div>
+        <button id="close-feedback-icon" class="icon-button feedback-close-icon" aria-label="Fechar" type="button">×</button>
+      </div>
+      <div class="dialog-actions feedback-actions">
+        <span id="feedback-copy-status" role="status"></span>
+        <button id="close-feedback" class="primary" type="button">Entendi</button>
+      </div>
+    </dialog>
+
     <dialog id="scene-dialog">
       <form id="scene-form" method="dialog">
         <div class="dialog-header"><div><p class="eyebrow">SUAS PREFERÊNCIAS</p><h2>Personalizar cenas</h2><p>Crie combinações próprias de nome, cor e brilho.</p></div><button id="close-scenes" class="icon-button" aria-label="Fechar" type="button">×</button></div>

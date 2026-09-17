@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('rgbCentral', {
   testController: (controllerId) => ipcRenderer.invoke('test-controller', controllerId),
   openSetupOutput: (toolId) => ipcRenderer.invoke('open-setup-output', toolId),
   copyHomeAssistantConfig: () => ipcRenderer.invoke('copy-home-assistant-config'),
+  copySupportText: (value) => ipcRenderer.invoke('copy-support-text', value),
   openConfig: () => ipcRenderer.invoke('open-config'),
   openAutomations: () => ipcRenderer.invoke('open-automations'),
   onState: (callback) => ipcRenderer.on('state-updated', (_event, state) => callback(state)),
