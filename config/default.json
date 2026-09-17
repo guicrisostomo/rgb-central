@@ -1,5 +1,5 @@
 {
-  "configVersion": 3,
+  "configVersion": 4,
   "api": {
     "host": "127.0.0.1",
     "port": 47831,
@@ -25,11 +25,9 @@
     {
       "id": "corsair",
       "name": "Corsair iCUE",
-      "description": "Modelo opcional para dispositivos compatíveis com iCUE.",
-      "type": "powershell",
+      "description": "Controle oficial pelo iCUE SDK; requer habilitar o SDK nas configurações do iCUE.",
+      "type": "corsair-sdk",
       "configured": false,
-      "script": "official-app-profile.ps1",
-      "args": ["-Vendor", "corsair"],
       "enabled": false,
       "timeoutMs": 20000
     },

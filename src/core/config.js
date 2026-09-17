@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 
 const SCENE_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 const CONTROLLER_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
-const CURRENT_CONFIG_VERSION = 3;
+const CURRENT_CONFIG_VERSION = 4;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -58,7 +58,7 @@ function validateConfig(config) {
     if (typeof controller.configured !== 'boolean') {
       throw new Error(`Calibração inválida no controlador ${controller.id}.`);
     }
-    if (!['simulation', 'powershell'].includes(controller.type)) {
+    if (!['simulation', 'powershell', 'corsair-sdk'].includes(controller.type)) {
       throw new Error(`Tipo não permitido no controlador ${controller.id}.`);
     }
     if (controller.type === 'powershell' && !controller.script) {
@@ -106,17 +106,30 @@ function ensureUserFiles({ userDataPath, resourcesPath }) {
 
   const existing = readJson(configPath);
   if (existing.configVersion !== CURRENT_CONFIG_VERSION) {
+    const previousVersion = Number(existing.configVersion) || 0;
     existing.configVersion = CURRENT_CONFIG_VERSION;
     existing.controllers = (existing.controllers || []).map((controller) => {
       const knownScripts = {
         hyperx: 'hyperx-color.ps1',
         redragon: 'redragon-color.ps1'
       };
+      if (controller.id === 'corsair') {
+        const { script, args, ...safeController } = controller;
+        return {
+          ...safeController,
+          type: 'corsair-sdk',
+          description: 'Controle oficial pelo iCUE SDK; requer habilitar o SDK nas configurações do iCUE.',
+          configured: false,
+          enabled: false
+        };
+      }
       return {
         ...controller,
         ...(knownScripts[controller.id] ? { script: knownScripts[controller.id], args: [] } : {}),
-        configured: controller.type === 'simulation',
-        enabled: controller.type === 'simulation' ? controller.enabled : false
+        configured: previousVersion < 3 ? controller.type === 'simulation' : Boolean(controller.configured),
+        enabled: previousVersion < 3
+          ? controller.type === 'simulation' && Boolean(controller.enabled)
+          : Boolean(controller.configured) && Boolean(controller.enabled)
       };
     });
     saveConfig(configPath, existing);

@@ -1,6 +1,6 @@
 {
   "name": "rgb-central",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Central segura para coordenar perfis RGB pelos softwares oficiais.",
   "main": "src/main.js",
   "type": "commonjs",
@@ -17,6 +17,9 @@
   "build": {
     "appId": "io.github.rgbcentral.app",
     "productName": "RGB Central",
+    "asarUnpack": [
+      "node_modules/cue-sdk/prebuilds/**/*"
+    ],
     "files": [
       "src/**/*",
       "config/**/*",
@@ -46,5 +49,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }
+  },
+  "optionalDependencies": {
+    "cue-sdk": "4.0.84"
   }
 }

@@ -5,7 +5,7 @@ const path = require('node:path');
 const { promisify } = require('node:util');
 const { execFile } = require('node:child_process');
 const { ensureUserFiles, loadConfig, saveConfig } = require('./core/config');
-const { Orchestrator, executePowerShell } = require('./core/orchestrator');
+const { Orchestrator } = require('./core/orchestrator');
 const { createApiServer } = require('./core/api-server');
 const { buildHomeAssistantConfig, normalizeNetworkSettings } = require('./core/integrations');
 
@@ -14,7 +14,7 @@ const SETUP_TOOLS = {
   diagnostics: { script: 'diagnostics.ps1', output: 'rgb-central-diagnostico.txt' },
   interface: { script: 'inspect-rgb-ui.ps1', output: 'rgb-central-interface.txt' }
 };
-const TESTABLE_CONTROLLERS = new Set(['hyperx', 'redragon']);
+const TESTABLE_CONTROLLERS = new Set(['corsair', 'hyperx', 'redragon']);
 
 let windowRef;
 let trayRef;
@@ -153,7 +153,7 @@ async function testController(controllerId) {
   if (!TESTABLE_CONTROLLERS.has(controllerId)) throw new Error('Este adaptador ainda não possui teste seguro.');
   const controller = config.controllers.find((item) => item.id === controllerId);
   if (!controller) throw new Error('Controlador não encontrado.');
-  const result = await executePowerShell(controller, {
+  const result = await orchestrator.executeController(controller, {
     id: 'adapter_test',
     name: 'Teste do adaptador',
     color: '#00ff67',

@@ -1,5 +1,6 @@
 const { spawn } = require('node:child_process');
 const path = require('node:path');
+const { CorsairSdkController } = require('./corsair-sdk');
 
 function replaceTokens(value, scene) {
   return String(value)
@@ -63,15 +64,25 @@ function executePowerShell(controller, scene, automationRoot) {
 }
 
 class Orchestrator {
-  constructor({ config, automationRoot, onUpdate = () => {} }) {
+  constructor({ config, automationRoot, onUpdate = () => {}, corsairController = new CorsairSdkController() }) {
     this.config = config;
     this.automationRoot = automationRoot;
     this.onUpdate = onUpdate;
+    this.corsairController = corsairController;
     this.state = { busy: false, activeScene: null, lastRunAt: null, results: [] };
   }
 
   publicState() {
     return { ...this.state, tokenConfigured: Boolean(this.config.api.token) };
+  }
+
+  async executeController(controller, scene) {
+    if (controller.type === 'simulation') {
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      return { ok: true, message: `Simulado: ${scene.color} a ${scene.brightness}%` };
+    }
+    if (controller.type === 'corsair-sdk') return this.corsairController.apply(scene);
+    return executePowerShell(controller, scene, this.automationRoot);
   }
 
   async applyScene(sceneId) {
@@ -84,12 +95,7 @@ class Orchestrator {
     const results = [];
     for (const controller of enabled) {
       let result;
-      if (controller.type === 'simulation') {
-        await new Promise((resolve) => setTimeout(resolve, 180));
-        result = { ok: true, message: `Simulado: ${scene.color} a ${scene.brightness}%` };
-      } else {
-        result = await executePowerShell(controller, scene, this.automationRoot);
-      }
+      result = await this.executeController(controller, scene);
       results.push({ id: controller.id, name: controller.name, ...result });
       this.state = { ...this.state, results: [...results] };
       this.onUpdate(this.publicState());

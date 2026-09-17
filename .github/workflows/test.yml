@@ -23,3 +23,16 @@ jobs:
         run: npm test
       - name: Check repository privacy
         run: npm run privacy-check
+  corsair-sdk-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install runtime dependencies
+        run: npm install --omit=dev
+      - name: Load official iCUE SDK package
+        run: node -e "const sdk = require('cue-sdk'); if (typeof sdk.CorsairConnect !== 'function') process.exit(1)"
