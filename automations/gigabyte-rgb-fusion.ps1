@@ -67,6 +67,8 @@ public static class RgbCentralGigabyte {
     // adapter does not depend on one process name or MainWindowHandle access.
     public static IntPtr FindRgbFusionWindow() {
         IntPtr found = IntPtr.Zero;
+        IntPtr visualMatch = IntPtr.Zero;
+        int visualScore = 0;
         EnumWindows((handle, lParam) => {
             if (found != IntPtr.Zero || !IsWindowVisible(handle)) return true;
             string title = GetWindowTitle(handle);
@@ -75,9 +77,25 @@ public static class RgbCentralGigabyte {
                 found = handle;
                 return false;
             }
+            // Algumas versões desenham o título dentro da própria interface,
+            // deixando o texto Win32 vazio. Nesse caso, use a faixa laranja
+            // exclusiva do RGB Fusion como segunda forma de identificação.
+            RECT rect;
+            if (GetWindowRect(handle, out rect)) {
+                int width = rect.Right - rect.Left;
+                int height = rect.Bottom - rect.Top;
+                double aspect = height == 0 ? 0 : width / (double)height;
+                if (width >= 1000 && height >= 600 && aspect >= 1.55 && aspect <= 1.90) {
+                    int score = GetOrangeHeaderScore(handle);
+                    if (score > visualScore) {
+                        visualScore = score;
+                        visualMatch = handle;
+                    }
+                }
+            }
             return true;
         }, IntPtr.Zero);
-        return found;
+        return found != IntPtr.Zero ? found : (visualScore >= 12 ? visualMatch : IntPtr.Zero);
     }
 
     // RGB Fusion 3.24 uses a custom-rendered interface with no accessible
