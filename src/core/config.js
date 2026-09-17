@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 
 const SCENE_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 const CONTROLLER_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
-const CURRENT_CONFIG_VERSION = 5;
+const CURRENT_CONFIG_VERSION = 6;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -101,6 +101,7 @@ function ensureUserFiles({ userDataPath, resourcesPath }) {
   copyDirectory(sourceAutomations, userAutomations);
   for (const managedScript of [
     'diagnostics.ps1',
+    'gigabyte-rgb-fusion.ps1',
     'inspect-rgb-ui.ps1',
     'hyperx-color.ps1',
     'official-app-profile.ps1',
@@ -125,6 +126,18 @@ function ensureUserFiles({ userDataPath, resourcesPath }) {
           ...safeController,
           type: 'corsair-sdk',
           description: 'Controle oficial pelo iCUE SDK; requer habilitar o SDK nas configurações do iCUE.',
+          configured: false,
+          enabled: false,
+          ignored: Boolean(controller.ignored)
+        };
+      }
+      if (controller.id === 'gigabyte' && previousVersion < 6) {
+        return {
+          ...controller,
+          type: 'powershell',
+          description: 'Automação visual experimental do RGB Fusion 3.24; usa somente a janela oficial e exige teste inicial.',
+          script: 'gigabyte-rgb-fusion.ps1',
+          args: [],
           configured: false,
           enabled: false,
           ignored: Boolean(controller.ignored)

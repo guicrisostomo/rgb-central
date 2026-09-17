@@ -1,5 +1,5 @@
 {
-  "configVersion": 5,
+  "configVersion": 6,
   "api": {
     "host": "127.0.0.1",
     "port": 47831,
@@ -60,11 +60,11 @@
     {
       "id": "gigabyte",
       "name": "Gigabyte RGB Fusion",
-      "description": "Aguardando um método oficial confirmado para placas modernas. O SDK público legado não é usado por segurança.",
+      "description": "Automação visual experimental do RGB Fusion 3.24; usa somente a janela oficial e exige teste inicial.",
       "type": "powershell",
       "configured": false,
-      "script": "official-app-profile.ps1",
-      "args": ["-Vendor", "gigabyte"],
+      "script": "gigabyte-rgb-fusion.ps1",
+      "args": [],
       "enabled": false,
       "ignored": false,
       "timeoutMs": 20000

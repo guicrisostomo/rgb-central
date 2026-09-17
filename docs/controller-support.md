@@ -8,7 +8,7 @@ O RGB Central só libera um controlador depois que existe um caminho limitado, t
 | Corsair iCUE | Disponível | SDK oficial em modo compartilhado | Requer habilitar o iCUE SDK e confirmar o teste individual. |
 | HyperX NGENUITY | Experimental | Automação acessível do aplicativo oficial | Depende da versão, idioma e controles expostos pelo NGENUITY. |
 | Redragon | Experimental | Automação limitada à janela do aplicativo oficial | Depende do modelo e da interface fornecida pelo software Redragon. |
-| Gigabyte RGB Fusion | Bloqueado | Nenhum adaptador liberado | O SDK público legado é de 2019 e sua documentação lista plataformas AMD somente até X470. O projeto não redistribui suas DLLs. |
+| Gigabyte RGB Fusion | Experimental | Automação visual limitada à janela oficial | Calibrado para a versão 3.24.1202.1. Valida o layout conhecido, exige teste individual e não utiliza o SDK legado nem acesso direto ao hardware. |
 | Lian Li L-Connect 3 | Bloqueado | Nenhum adaptador liberado | Ainda não há uma interface oficial estável validada neste projeto. |
 
 Controladores bloqueados podem ser marcados como **Não uso este controlador**. Eles ficam desativados e ocultos da lista principal, mas podem ser restaurados pela interface.

@@ -23,3 +23,12 @@ test('adaptador Redragon converte coordenadas do mouse para ponteiro assinado', 
   const script = fs.readFileSync(path.join(automationRoot, 'redragon-color.ps1'), 'utf8');
   assert.match(script, /\[IntPtr\]::new\(\[int64\]\$packedPoint\)/);
 });
+
+test('adaptador Gigabyte limita cliques à janela e valida o layout conhecido', () => {
+  const script = fs.readFileSync(path.join(automationRoot, 'gigabyte-rgb-fusion.ps1'), 'utf8');
+  assert.match(script, /Get-Process -Name 'RGBFusion'/);
+  assert.match(script, /LooksLikeKnownLayout/);
+  assert.match(script, /GetForegroundWindow\(\) -ne \$window/);
+  assert.match(script, /ClickRelative/);
+  assert.doesNotMatch(script, /GLedApi|SMBus|WinRing|inpout/i);
+});

@@ -11,13 +11,13 @@ test('configuração padrão é válida', () => {
 });
 
 test('rejeita cena com ID perigoso', () => {
-  const value = { configVersion: 5, api: { host: '127.0.0.1', port: 47831, token: '' }, scenes: [{ id: '../x', name: 'Inválida', color: '#ffffff', brightness: 1 }], controllers: [] };
+  const value = { configVersion: 6, api: { host: '127.0.0.1', port: 47831, token: '' }, scenes: [{ id: '../x', name: 'Inválida', color: '#ffffff', brightness: 1 }], controllers: [] };
   assert.throws(() => validateConfig(value), /ID de cena inválido/);
 });
 
 test('não permite API na rede sem token forte', () => {
   const value = {
-    configVersion: 5,
+    configVersion: 6,
     api: { host: '0.0.0.0', port: 47831, token: 'curto' },
     scenes: [{ id: 'green', name: 'Verde', color: '#00ff00', brightness: 70 }],
     controllers: []
@@ -27,7 +27,7 @@ test('não permite API na rede sem token forte', () => {
 
 test('aceita cenas personalizadas sem depender de fabricante', () => {
   const value = {
-    configVersion: 5,
+    configVersion: 6,
     api: { host: '127.0.0.1', port: 47831, token: '' },
     scenes: [{ id: 'reading', name: 'Leitura', color: '#f2c94c', brightness: 42 }],
     controllers: [{ id: 'demo', name: 'Demonstração', type: 'simulation', configured: true, enabled: true, ignored: false }]
@@ -39,7 +39,7 @@ test('salva e recarrega configuração validada', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rgb-central-'));
   const configPath = path.join(directory, 'config.json');
   const value = {
-    configVersion: 5,
+    configVersion: 6,
     api: { host: '127.0.0.1', port: 47831, token: '' },
     scenes: [{ id: 'custom', name: 'Minha cena', color: '#123abc', brightness: 55 }],
     controllers: [{ id: 'demo', name: 'Demonstração', type: 'simulation', configured: true, enabled: false, ignored: false }]
@@ -67,7 +67,7 @@ test('migra configuração antiga desativando adaptadores não calibrados', () =
   try {
     ensureUserFiles({ userDataPath: directory, resourcesPath: path.join(__dirname, '..') });
     const migrated = loadConfig(configPath);
-    assert.equal(migrated.configVersion, 5);
+    assert.equal(migrated.configVersion, 6);
     assert.equal(migrated.controllers[0].configured, true);
     assert.equal(migrated.controllers[1].configured, false);
     assert.equal(migrated.controllers[1].enabled, false);
@@ -142,7 +142,7 @@ test('migra preferências de controladores e permite ocultar apenas quando desat
   try {
     ensureUserFiles({ userDataPath: directory, resourcesPath: path.join(__dirname, '..') });
     const migrated = loadConfig(configPath);
-    assert.equal(migrated.configVersion, 5);
+    assert.equal(migrated.configVersion, 6);
     assert.equal(migrated.controllers[0].ignored, false);
     const invalid = structuredClone(migrated);
     invalid.controllers[0].ignored = true;
@@ -172,6 +172,33 @@ test('preserva Corsair já preparado ao migrar apenas a preferência de exibiç�
     assert.equal(migrated.configured, true);
     assert.equal(migrated.enabled, true);
     assert.equal(migrated.ignored, false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('migra Gigabyte para a automação visual sem ativar automaticamente', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rgb-central-gigabyte-v6-'));
+  const configPath = path.join(directory, 'config.json');
+  const oldConfig = {
+    configVersion: 5,
+    api: { host: '127.0.0.1', port: 47831, token: 'token-local' },
+    scenes: [{ id: 'green', name: 'Verde', color: '#00ff00', brightness: 70 }],
+    controllers: [{
+      id: 'gigabyte', name: 'Gigabyte RGB Fusion', type: 'powershell',
+      script: 'official-app-profile.ps1', args: ['-Vendor', 'gigabyte'],
+      configured: false, enabled: false, ignored: false
+    }]
+  };
+  fs.writeFileSync(configPath, JSON.stringify(oldConfig), 'utf8');
+  try {
+    const paths = ensureUserFiles({ userDataPath: directory, resourcesPath: path.join(__dirname, '..') });
+    const migrated = loadConfig(configPath).controllers[0];
+    assert.equal(migrated.script, 'gigabyte-rgb-fusion.ps1');
+    assert.deepEqual(migrated.args, []);
+    assert.equal(migrated.configured, false);
+    assert.equal(migrated.enabled, false);
+    assert.equal(fs.existsSync(path.join(paths.automationRoot, 'gigabyte-rgb-fusion.ps1')), true);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

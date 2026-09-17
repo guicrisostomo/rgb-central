@@ -14,7 +14,7 @@ const SETUP_TOOLS = {
   diagnostics: { script: 'diagnostics.ps1', output: 'rgb-central-diagnostico.txt' },
   interface: { script: 'inspect-rgb-ui.ps1', output: 'rgb-central-interface.txt' }
 };
-const TESTABLE_CONTROLLERS = new Set(['corsair', 'hyperx', 'redragon']);
+const TESTABLE_CONTROLLERS = new Set(['corsair', 'hyperx', 'redragon', 'gigabyte']);
 
 let windowRef;
 let trayRef;

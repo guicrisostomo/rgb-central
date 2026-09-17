@@ -27,7 +27,8 @@ Ao contrário de soluções que controlam os dispositivos diretamente, este proj
 - Controladores opcionais que podem ser ativados, desativados ou ocultados individualmente e restaurados depois.
 - Adaptador opt-in para Corsair usando o pacote oficial iCUE SDK para Node/Electron.
 - Adaptadores experimentais e opt-in para HyperX NGENUITY e Redragon, sempre testados individualmente antes da ativação.
-- Modelos bloqueados para RGB Fusion e L-Connect 3 até existir um caminho seguro e validado.
+- Adaptador visual experimental e opt-in para RGB Fusion 3.24, limitado à janela oficial e validado antes de clicar.
+- Modelo bloqueado para L-Connect 3 até existir um caminho seguro e necessário para o hardware detectado.
 - Suporte a novos adaptadores por configuração, sem limitar o projeto a um setup específico.
 - Script de diagnóstico para identificar versões e caminhos instalados.
 
@@ -73,7 +74,11 @@ Quando um adaptador seguro está disponível, a tela **Automações** apresenta 
 
 Para a Corsair, abra **iCUE → Configurações → SDK** e ative **iCUE SDK**. O RGB Central usa o pacote oficial `cue-sdk`, mantido pela Corsair, em modo compartilhado. Ele pede ao próprio iCUE a lista de dispositivos e LEDs e não acessa USB, SMBus ou firmware diretamente. Caso o SDK esteja desativado, o teste explica onde habilitá-lo.
 
-O adaptador Gigabyte permanece bloqueado. O [SDK público do RGB Fusion](https://www.gigabyte.com/mb/rgb/sdk) fornece um pacote legado de 2019 cuja documentação lista placas AMD somente até a geração X470, além de não apresentar uma licença clara para redistribuir suas DLLs. O projeto não empacota esses binários e não presume compatibilidade com placas mais novas. O L-Connect 3 também permanece opcional e bloqueado até existir uma interface oficial estável e validada.
+O projeto não utiliza o [SDK público legado do RGB Fusion](https://www.gigabyte.com/mb/rgb/sdk): o pacote é de 2019, sua documentação lista placas AMD somente até X470 e não apresenta uma licença clara para redistribuir as DLLs. Em vez disso, o adaptador Gigabyte automatiza a tela oficial do RGB Fusion 3.24.1202.1. Ele confere processo, dimensões, proporção e o cabeçalho visual conhecido antes de qualquer clique; usa coordenadas relativas à janela; restaura o cursor; exige teste verde e permanece desativado até a confirmação do usuário. Como a interface não oferece controles acessíveis, uma atualização visual do RGB Fusion pode exigir nova calibração.
+
+Para testar a Gigabyte, abra o RGB Fusion na tela **B550M AORUS ELITE**, maximize a janela, deixe o **Sync Mode** disponível e não use o mouse durante alguns segundos. O teste envia verde a 70% aos conectores sincronizados, incluindo `Digital LED`. Confirme visualmente o resultado antes de ativar o controlador.
+
+O L-Connect 3 permanece opcional e bloqueado quando nenhum controlador Lian Li é detectado.
 
 No NGENUITY, o RGB Central escolhe a cor disponível mais próxima dentro de uma tolerância segura. Cores sem aproximação razoável, como branco quando ele não existe na paleta, precisam ser adicionadas uma vez pelo usuário; o aplicativo não troca uma cor solicitada por outra muito diferente. O adaptador Redragon preenche os campos RGB do software oficial e confirma pelo botão Apply.
 
