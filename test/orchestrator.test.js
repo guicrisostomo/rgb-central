@@ -16,6 +16,12 @@ test('resume erro do PowerShell sem caminho e metadados internos', () => {
   assert.equal(summarizePowerShellError(output), 'O layout não foi reconhecido.');
 });
 
+test('não apresenta Código null como mensagem de falha', () => {
+  const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'src', 'core', 'orchestrator.js'), 'utf8');
+  assert.match(source, /timedOut/);
+  assert.match(source, /excedeu o limite/);
+});
+
 test('aplica uma cena no modo simulação', async () => {
   const orchestrator = new Orchestrator({
     config: {

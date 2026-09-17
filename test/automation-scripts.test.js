@@ -33,6 +33,9 @@ test('adaptador Gigabyte limita cliques à janela e valida o layout conhecido', 
   assert.match(script, /Set-ColorWheel/);
   assert.match(script, /ReadRelativeRgb/);
   assert.doesNotMatch(script, /SendKeys/);
+  assert.match(script, /ShowWindow\(\$window, 3\)/);
+  assert.doesNotMatch(script, /ClickRelative\(\$window, 0\.082, 0\.122\)/);
+  assert.match(script, /roda de cores pronta/);
   assert.match(script, /GetForegroundWindow\(\) -ne \$window/);
   assert.match(script, /ClickRelative/);
   assert.doesNotMatch(script, /GLedApi|SMBus|WinRing|inpout/i);

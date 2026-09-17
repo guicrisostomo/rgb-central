@@ -57,8 +57,15 @@ function executePowerShell(controller, scene, automationRoot) {
     });
     let output = '';
     let error = '';
-    const timeoutMs = Math.min(Math.max(controller.timeoutMs || 15000, 1000), 60000);
-    const timer = setTimeout(() => child.kill(), timeoutMs);
+    const configuredTimeout = controller.id === 'gigabyte'
+      ? Math.max(controller.timeoutMs || 0, 30000)
+      : controller.timeoutMs || 15000;
+    const timeoutMs = Math.min(Math.max(configuredTimeout, 1000), 60000);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, timeoutMs);
     child.stdout.on('data', (chunk) => { output += chunk.toString(); });
     child.stderr.on('data', (chunk) => { error += chunk.toString(); });
     child.on('error', (cause) => {
@@ -71,6 +78,15 @@ function executePowerShell(controller, scene, automationRoot) {
     });
     child.on('close', (code) => {
       clearTimeout(timer);
+      if (timedOut) {
+        const technical = sanitizePowerShellOutput([error, output].filter(Boolean).join('\n'));
+        resolve({
+          ok: false,
+          message: `A automação de ${controller.name} excedeu o limite de ${Math.round(timeoutMs / 1000)} segundos.`,
+          ...(technical ? { technical } : {})
+        });
+        return;
+      }
       const raw = code === 0 ? output : error || output || `Código ${code}`;
       resolve({
         ok: code === 0,
