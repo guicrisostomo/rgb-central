@@ -30,6 +30,9 @@ test('adaptador Gigabyte limita cliques à janela e valida o layout conhecido', 
   assert.match(script, /GetOrangeHeaderScore/);
   assert.match(script, /GetWindowTitle/);
   assert.match(script, /B550M AORUS ELITE\|RGB Fusion/);
+  assert.match(script, /Set-ColorWheel/);
+  assert.match(script, /ReadRelativeRgb/);
+  assert.doesNotMatch(script, /SendKeys/);
   assert.match(script, /GetForegroundWindow\(\) -ne \$window/);
   assert.match(script, /ClickRelative/);
   assert.doesNotMatch(script, /GLedApi|SMBus|WinRing|inpout/i);

@@ -5,7 +5,6 @@
 )
 
 $ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Windows.Forms
 
 Add-Type -TypeDefinition @'
 using System;
@@ -91,24 +90,64 @@ public static class RgbCentralGigabyte {
         }
         return bestRow;
     }
+
+    public static int ReadRelativeRgb(IntPtr handle, double relativeX, double relativeY) {
+        RECT rect;
+        if (!GetWindowRect(handle, out rect)) return -1;
+        int x = rect.Left + (int)Math.Round((rect.Right - rect.Left) * relativeX);
+        int y = rect.Top + (int)Math.Round((rect.Bottom - rect.Top) * relativeY);
+        IntPtr dc = GetDC(IntPtr.Zero);
+        if (dc == IntPtr.Zero) return -1;
+        try {
+            uint color = GetPixel(dc, x, y);
+            int red = (int)(color & 0xff);
+            int green = (int)((color >> 8) & 0xff);
+            int blue = (int)((color >> 16) & 0xff);
+            return (red << 16) | (green << 8) | blue;
+        } finally {
+            ReleaseDC(IntPtr.Zero, dc);
+        }
+    }
 }
 '@
 
-function Set-TextField {
+function Set-ColorWheel {
   param(
     [IntPtr]$Window,
-    [double]$RelativeX,
-    [double]$RelativeY,
-    [string]$Value
+    [int]$Red,
+    [int]$Green,
+    [int]$Blue
   )
   if ([RgbCentralGigabyte]::GetForegroundWindow() -ne $Window) {
     throw 'O RGB Fusion perdeu o foco; nenhuma alteração foi confirmada.'
   }
-  [RgbCentralGigabyte]::ClickRelative($Window, $RelativeX, $RelativeY)
-  Start-Sleep -Milliseconds 90
-  [System.Windows.Forms.SendKeys]::SendWait('^a')
-  [System.Windows.Forms.SendKeys]::SendWait($Value)
-  Start-Sleep -Milliseconds 90
+
+  $redValue = $Red / 255.0
+  $greenValue = $Green / 255.0
+  $blueValue = $Blue / 255.0
+  $maximum = [Math]::Max($redValue, [Math]::Max($greenValue, $blueValue))
+  $minimum = [Math]::Min($redValue, [Math]::Min($greenValue, $blueValue))
+  $delta = $maximum - $minimum
+  $saturation = if ($maximum -eq 0) { 0.0 } else { $delta / $maximum }
+  $hue = 0.0
+  if ($delta -ne 0) {
+    if ($maximum -eq $redValue) {
+      $hue = 60.0 * ((($greenValue - $blueValue) / $delta) % 6.0)
+    } elseif ($maximum -eq $greenValue) {
+      $hue = 60.0 * ((($blueValue - $redValue) / $delta) + 2.0)
+    } else {
+      $hue = 60.0 * ((($redValue - $greenValue) / $delta) + 4.0)
+    }
+  }
+  if ($hue -lt 0) { $hue += 360.0 }
+
+  # Centro e raio medidos na roda HSV do RGB Fusion 3.24. O raio usa eixos
+  # relativos separados para continuar circular em qualquer resolução 16:9.
+  $angle = $hue * [Math]::PI / 180.0
+  $wheelX = 0.843 + (0.080 * $saturation * [Math]::Cos($angle))
+  $wheelY = 0.293 - (0.137 * $saturation * [Math]::Sin($angle))
+  [RgbCentralGigabyte]::ClickRelative($Window, $wheelX, $wheelY)
+  Start-Sleep -Milliseconds 260
 }
 
 [void][RgbCentralGigabyte]::SetProcessDPIAware()
@@ -158,11 +197,9 @@ try {
   $green = [Convert]::ToInt32($Color.Substring(3, 2), 16)
   $blue = [Convert]::ToInt32($Color.Substring(5, 2), 16)
 
-  # Campos R, G e B da versão 3.24.1202.1. As coordenadas são relativas à
-  # janela validada, e não à posição absoluta do monitor.
-  Set-TextField $window 0.750 0.574 ([string]$red)
-  Set-TextField $window 0.798 0.574 ([string]$green)
-  Set-TextField $window 0.846 0.574 ([string]$blue)
+  # Os campos R/G/B desta versão são renderizados pelo aplicativo e podem
+  # ignorar entrada de teclado. A roda HSV é o controle interativo confiável.
+  Set-ColorWheel $window $red $green $blue
 
   # Barra de brilho: 72,8% a 95,0% da largura da janela.
   $brightnessX = 0.728 + (0.222 * $Brightness / 100.0)
@@ -173,7 +210,29 @@ try {
     throw 'O RGB Fusion perdeu o foco antes de aplicar a alteração.'
   }
   [RgbCentralGigabyte]::ClickRelative($window, 0.776, 0.970)
-  Start-Sleep -Milliseconds 300
+  Start-Sleep -Milliseconds 450
+
+  # A linha do conector LED_C2 reflete a cor sólida aplicada. Conferir esse
+  # ponto evita declarar sucesso quando a interface recebeu o foco, mas
+  # ignorou a seleção. O modo apagado é isento porque a interface preserva a
+  # última cor mesmo com brilho zero.
+  if ($Brightness -gt 0 -and ($red -gt 0 -or $green -gt 0 -or $blue -gt 0)) {
+    $observed = [RgbCentralGigabyte]::ReadRelativeRgb($window, 0.323, 0.115)
+    if ($observed -lt 0) {
+      throw 'A cor foi enviada, mas não foi possível verificar o resultado na janela do RGB Fusion.'
+    }
+    $observedRed = ($observed -shr 16) -band 0xff
+    $observedGreen = ($observed -shr 8) -band 0xff
+    $observedBlue = $observed -band 0xff
+    $difference = [Math]::Max(
+      [Math]::Abs($red - $observedRed),
+      [Math]::Max([Math]::Abs($green - $observedGreen), [Math]::Abs($blue - $observedBlue))
+    )
+    if ($difference -gt 70) {
+      $observedHex = '#{0:X2}{1:X2}{2:X2}' -f $observedRed, $observedGreen, $observedBlue
+      throw "O RGB Fusion abriu, mas não confirmou a nova cor. Esperado: $Color; exibido: $observedHex. Nenhuma confirmação de sucesso foi registrada."
+    }
+  }
 } finally {
   [void][RgbCentralGigabyte]::SetCursorPos($originalCursor.X, $originalCursor.Y)
 }
