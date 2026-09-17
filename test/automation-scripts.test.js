@@ -27,6 +27,7 @@ test('adaptador Redragon converte coordenadas do mouse para ponteiro assinado', 
 test('adaptador Gigabyte limita cliques à janela e valida o layout conhecido', () => {
   const script = fs.readFileSync(path.join(automationRoot, 'gigabyte-rgb-fusion.ps1'), 'utf8');
   assert.match(script, /FindRgbFusionWindow/);
+  assert.match(script, /FindWindowForProcessIds/);
   assert.match(script, /faixa laranja/);
   assert.match(script, /GetOrangeHeaderScore/);
   assert.match(script, /GetWindowTitle/);

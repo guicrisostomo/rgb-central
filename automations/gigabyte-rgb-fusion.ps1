@@ -31,6 +31,8 @@ public static class RgbCentralGigabyte {
     static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
     [DllImport("user32.dll")]
     static extern bool IsWindowVisible(IntPtr handle);
+    [DllImport("user32.dll")]
+    static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     static extern int GetWindowText(IntPtr handle, System.Text.StringBuilder text, int count);
     [DllImport("user32.dll")]
@@ -96,6 +98,32 @@ public static class RgbCentralGigabyte {
             return true;
         }, IntPtr.Zero);
         return found != IntPtr.Zero ? found : (visualScore >= 12 ? visualMatch : IntPtr.Zero);
+    }
+
+    public static IntPtr FindWindowForProcessIds(uint[] processIds) {
+        IntPtr found = IntPtr.Zero;
+        EnumWindows((handle, lParam) => {
+            if (!IsWindowVisible(handle)) return true;
+            uint processId;
+            GetWindowThreadProcessId(handle, out processId);
+            bool matches = false;
+            foreach (uint candidate in processIds) {
+                if (candidate == processId) { matches = true; break; }
+            }
+            if (!matches) return true;
+            RECT rect;
+            if (GetWindowRect(handle, out rect)) {
+                int width = rect.Right - rect.Left;
+                int height = rect.Bottom - rect.Top;
+                double aspect = height == 0 ? 0 : width / (double)height;
+                if (width >= 800 && height >= 500 && aspect >= 1.35 && aspect <= 2.10) {
+                    found = handle;
+                    return false;
+                }
+            }
+            return true;
+        }, IntPtr.Zero);
+        return found;
     }
 
     // RGB Fusion 3.24 uses a custom-rendered interface with no accessible
@@ -208,7 +236,20 @@ function Set-ColorWheel {
 
 [void][RgbCentralGigabyte]::SetProcessDPIAware()
 Write-Stage 'procurando a janela do RGB Fusion'
-$window = [RgbCentralGigabyte]::FindRgbFusionWindow()
+$processIds = @(
+  Get-Process -Name 'RGBFusion' -ErrorAction SilentlyContinue |
+    ForEach-Object { [uint32]$_.Id }
+)
+$window = if ($processIds.Count -gt 0) {
+  [RgbCentralGigabyte]::FindWindowForProcessIds([uint32[]]$processIds)
+} else {
+  [IntPtr]::Zero
+}
+if ($window -ne [IntPtr]::Zero) {
+  Write-Stage 'janela encontrada pelo processo RGBFusion'
+} else {
+  $window = [RgbCentralGigabyte]::FindRgbFusionWindow()
+}
 if ($window -eq [IntPtr]::Zero) {
   throw 'Não encontrei uma janela visível do RGB Fusion. Abra o RGB Fusion na tela B550M AORUS ELITE e tente novamente.'
 }
