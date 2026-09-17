@@ -26,6 +26,11 @@ public static class RgbCentralGigabyte {
     public static extern bool SetForegroundWindow(IntPtr handle);
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
+    public delegate bool EnumWindowsProc(IntPtr handle, IntPtr lParam);
+    [DllImport("user32.dll")]
+    static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+    [DllImport("user32.dll")]
+    static extern bool IsWindowVisible(IntPtr handle);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     static extern int GetWindowText(IntPtr handle, System.Text.StringBuilder text, int count);
     [DllImport("user32.dll")]
@@ -55,6 +60,24 @@ public static class RgbCentralGigabyte {
         var text = new System.Text.StringBuilder(256);
         GetWindowText(handle, text, text.Capacity);
         return text.ToString();
+    }
+
+    // RGB Fusion can be hosted by different Gigabyte executables depending on
+    // the installed package. Find its visible top-level window by title so the
+    // adapter does not depend on one process name or MainWindowHandle access.
+    public static IntPtr FindRgbFusionWindow() {
+        IntPtr found = IntPtr.Zero;
+        EnumWindows((handle, lParam) => {
+            if (found != IntPtr.Zero || !IsWindowVisible(handle)) return true;
+            string title = GetWindowTitle(handle);
+            if (title.IndexOf("B550M AORUS ELITE", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                title.IndexOf("RGB Fusion", StringComparison.OrdinalIgnoreCase) >= 0) {
+                found = handle;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return found;
     }
 
     // RGB Fusion 3.24 uses a custom-rendered interface with no accessible
@@ -167,14 +190,11 @@ function Set-ColorWheel {
 
 [void][RgbCentralGigabyte]::SetProcessDPIAware()
 Write-Stage 'procurando a janela do RGB Fusion'
-$process = Get-Process -Name 'RGBFusion' -ErrorAction SilentlyContinue |
-  Where-Object { $_.MainWindowHandle -ne 0 } |
-  Select-Object -First 1
-if (-not $process) {
-  throw 'Abra o RGB Fusion na tela da placa-mãe e tente novamente.'
+$window = [RgbCentralGigabyte]::FindRgbFusionWindow()
+if ($window -eq [IntPtr]::Zero) {
+  throw 'Não encontrei uma janela visível do RGB Fusion. Abra o RGB Fusion na tela B550M AORUS ELITE e tente novamente.'
 }
 
-$window = [IntPtr]$process.MainWindowHandle
 [void][RgbCentralGigabyte]::ShowWindow($window, 3)
 [void][RgbCentralGigabyte]::SetForegroundWindow($window)
 Start-Sleep -Milliseconds 800
