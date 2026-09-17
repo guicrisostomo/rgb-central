@@ -17,6 +17,8 @@ Ao contrário de soluções que controlam os dispositivos diretamente, este proj
 - Inicialização opcional com o Windows.
 - Resultado individual por controlador, sem esconder falhas.
 - Erros apresentados dentro do aplicativo com resumo, orientação prática e detalhes técnicos anonimizados e copiáveis.
+- Descoberta local de fitas, mangueiras e backlights Govee compatíveis com a API LAN oficial.
+- Assistente para luzes Higoogoo, Smart Life, Tuya e outras já disponíveis no Home Assistant.
 - API HTTP local para Home Assistant e outras automações.
 - Token aleatório criado na primeira execução.
 - Modo de demonstração que não toca no hardware.
@@ -78,6 +80,14 @@ Para a Corsair, abra **iCUE → Configurações → SDK** e ative **iCUE SDK**. 
 O projeto não utiliza o [SDK público legado do RGB Fusion](https://www.gigabyte.com/mb/rgb/sdk): o pacote é de 2019, sua documentação lista placas AMD somente até X470 e não apresenta uma licença clara para redistribuir as DLLs. Em vez disso, o adaptador Gigabyte automatiza a tela oficial do RGB Fusion 3.24.1202.1. Ele confere processo, dimensões, proporção e o cabeçalho visual conhecido antes de qualquer clique; usa coordenadas relativas à janela; restaura o cursor; exige teste verde e permanece desativado até a confirmação do usuário. Como a interface não oferece controles acessíveis, uma atualização visual do RGB Fusion pode exigir nova calibração.
 
 Para testar a Gigabyte, abra o RGB Fusion na tela **B550M AORUS ELITE**, maximize a janela, deixe o **Sync Mode** disponível e não use o mouse durante alguns segundos. O teste envia verde a 70% aos conectores sincronizados, incluindo `Digital LED`. Confirme visualmente o resultado antes de ativar o controlador.
+
+### Mangueiras, fitas e backlights
+
+Para dispositivos Govee compatíveis, abra o Govee Home, entre nas configurações da luz e ative **LAN Control**. No RGB Central, abra **Automações → Govee / backlight → Localizar dispositivos**. A busca e os comandos ficam na rede local e não exigem a chave da API na nuvem. A descoberta usa UDP `4001` e `4002`; o controle usa UDP `4003`.
+
+A marca Higoogoo utiliza controladores diferentes conforme o produto: há modelos Wi-Fi e modelos que dependem apenas de Bluetooth ou controle remoto. Por isso, o RGB Central não presume um protocolo só pela marca. Luzes Higoogoo, Smart Life, Tuya e outras que já aparecem no Home Assistant podem ser adicionadas em **Mangueira e backlight → Conectar luzes**, informando o endereço do Home Assistant, as entidades `light.*` e um token de longa duração. O token fica apenas no `config.json` local, é omitido da interface e nunca faz parte do repositório.
+
+Se a Higoogoo não aparece no Home Assistant e funciona somente por Bluetooth, será necessário identificar o nome do aplicativo e o modelo do controlador ou substituir o controlador por uma opção com integração conhecida, como Wi-Fi/Tuya, Zigbee ou WLED. O RGB Central não tenta enviar comandos Bluetooth desconhecidos.
 
 O L-Connect 3 permanece opcional e bloqueado quando nenhum controlador Lian Li é detectado.
 

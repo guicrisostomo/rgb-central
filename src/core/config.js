@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 
 const SCENE_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 const CONTROLLER_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
-const CURRENT_CONFIG_VERSION = 6;
+const CURRENT_CONFIG_VERSION = 7;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -64,11 +64,39 @@ function validateConfig(config) {
     if (controller.ignored && controller.enabled) {
       throw new Error(`Controlador ignorado não pode ficar ativo: ${controller.id}.`);
     }
-    if (!['simulation', 'powershell', 'corsair-sdk'].includes(controller.type)) {
+    if (!['simulation', 'powershell', 'corsair-sdk', 'govee-lan', 'home-assistant-light'].includes(controller.type)) {
       throw new Error(`Tipo não permitido no controlador ${controller.id}.`);
     }
     if (controller.type === 'powershell' && !controller.script) {
       throw new Error(`Script ausente no controlador ${controller.id}.`);
+    }
+    if (controller.type === 'govee-lan') {
+      if (!Array.isArray(controller.devices) || controller.devices.length > 30) {
+        throw new Error(`Dispositivos Govee inválidos no controlador ${controller.id}.`);
+      }
+      for (const device of controller.devices) {
+        if (!device || typeof device.id !== 'string' || device.id.length > 100
+          || !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(device.ip || '')
+          || typeof device.sku !== 'string' || device.sku.length > 40) {
+          throw new Error(`Dispositivo Govee inválido no controlador ${controller.id}.`);
+        }
+      }
+      if (controller.configured && controller.devices.length === 0) {
+        throw new Error(`Nenhum dispositivo Govee configurado em ${controller.id}.`);
+      }
+    }
+    if (controller.type === 'home-assistant-light') {
+      if (!Array.isArray(controller.entities) || controller.entities.length > 30
+        || controller.entities.some((entity) => !/^light\.[a-z0-9_]+$/.test(entity))) {
+        throw new Error(`Entidades do Home Assistant inválidas no controlador ${controller.id}.`);
+      }
+      if (typeof controller.baseUrl !== 'string' || controller.baseUrl.length > 300
+        || typeof controller.token !== 'string' || controller.token.length > 4096) {
+        throw new Error(`Conexão do Home Assistant inválida no controlador ${controller.id}.`);
+      }
+      if (controller.configured && (!controller.baseUrl || controller.token.length < 20 || !controller.entities.length)) {
+        throw new Error(`Conexão do Home Assistant incompleta em ${controller.id}.`);
+      }
     }
   }
   return config;
@@ -88,8 +116,8 @@ function ensureUserFiles({ userDataPath, resourcesPath }) {
   fs.mkdirSync(userDataPath, { recursive: true });
   const configPath = path.join(userDataPath, 'config.json');
   const sourceRoot = resourcesPath;
+  const defaultConfig = readJson(path.join(sourceRoot, 'config', 'default.json'));
   if (!fs.existsSync(configPath)) {
-    const defaultConfig = readJson(path.join(sourceRoot, 'config', 'default.json'));
     defaultConfig.api.token = crypto.randomBytes(24).toString('hex');
     fs.writeFileSync(configPath, `${JSON.stringify(defaultConfig, null, 2)}\n`, {
       encoding: 'utf8',
@@ -153,6 +181,14 @@ function ensureUserFiles({ userDataPath, resourcesPath }) {
           : Boolean(controller.configured) && Boolean(controller.enabled)
       };
     });
+    if (previousVersion < 7) {
+      const currentIds = new Set(existing.controllers.map((controller) => controller.id));
+      for (const controller of defaultConfig.controllers) {
+        if (!currentIds.has(controller.id) && ['govee', 'ambient'].includes(controller.id)) {
+          existing.controllers.push(structuredClone(controller));
+        }
+      }
+    }
     saveConfig(configPath, existing);
   }
   return { configPath, automationRoot: path.join(userDataPath, 'automations') };

@@ -1,6 +1,8 @@
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const { CorsairSdkController } = require('./corsair-sdk');
+const { GoveeLanController } = require('./govee-lan');
+const { HomeAssistantLightController } = require('./home-assistant-light');
 
 function replaceTokens(value, scene) {
   return String(value)
@@ -98,6 +100,8 @@ class Orchestrator {
       return { ok: true, message: `Simulado: ${scene.color} a ${scene.brightness}%` };
     }
     if (controller.type === 'corsair-sdk') return this.corsairController.apply(scene);
+    if (controller.type === 'govee-lan') return new GoveeLanController(controller).apply(scene);
+    if (controller.type === 'home-assistant-light') return new HomeAssistantLightController(controller).apply(scene);
     return executePowerShell(controller, scene, this.automationRoot);
   }
 

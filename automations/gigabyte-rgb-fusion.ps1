@@ -27,6 +27,8 @@ public static class RgbCentralGigabyte {
     public static extern bool SetForegroundWindow(IntPtr handle);
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int GetWindowText(IntPtr handle, System.Text.StringBuilder text, int count);
     [DllImport("user32.dll")]
     public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")]
@@ -50,30 +52,44 @@ public static class RgbCentralGigabyte {
         mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
     }
 
+    public static string GetWindowTitle(IntPtr handle) {
+        var text = new System.Text.StringBuilder(256);
+        GetWindowText(handle, text, text.Capacity);
+        return text.ToString();
+    }
+
     // RGB Fusion 3.24 uses a custom-rendered interface with no accessible
-    // child controls. Validate its long orange header before any click so a
-    // future layout cannot redirect input to an unrelated window.
-    public static bool LooksLikeKnownLayout(IntPtr handle) {
+    // child controls. Scan a vertical band instead of one exact row because
+    // Windows DPI scaling and the title-bar size move the orange header by a
+    // few pixels between otherwise identical installations.
+    public static int GetOrangeHeaderScore(IntPtr handle) {
         RECT rect;
-        if (!GetWindowRect(handle, out rect)) return false;
+        if (!GetWindowRect(handle, out rect)) return 0;
         int width = rect.Right - rect.Left;
         int height = rect.Bottom - rect.Top;
         IntPtr dc = GetDC(IntPtr.Zero);
-        if (dc == IntPtr.Zero) return false;
-        int orangeSamples = 0;
+        if (dc == IntPtr.Zero) return 0;
+        int bestRow = 0;
         try {
-            int y = rect.Top + (int)Math.Round(height * 0.067);
-            for (int x = rect.Left + (int)(width * 0.04); x < rect.Left + (int)(width * 0.78); x += 8) {
-                uint color = GetPixel(dc, x, y);
-                int red = (int)(color & 0xff);
-                int green = (int)((color >> 8) & 0xff);
-                int blue = (int)((color >> 16) & 0xff);
-                if (red > 150 && green > 35 && green < 165 && blue < 70) orangeSamples++;
+            int firstY = rect.Top + (int)Math.Round(height * 0.045);
+            int lastY = rect.Top + (int)Math.Round(height * 0.110);
+            for (int y = firstY; y <= lastY; y += 2) {
+                int orangeSamples = 0;
+                for (int x = rect.Left + (int)(width * 0.01); x < rect.Left + (int)(width * 0.82); x += 4) {
+                    uint color = GetPixel(dc, x, y);
+                    int red = (int)(color & 0xff);
+                    int green = (int)((color >> 8) & 0xff);
+                    int blue = (int)((color >> 16) & 0xff);
+                    if (red > 145 && green > 25 && green < 180 && blue < 85 && red > green + 45) {
+                        orangeSamples++;
+                    }
+                }
+                if (orangeSamples > bestRow) bestRow = orangeSamples;
             }
         } finally {
             ReleaseDC(IntPtr.Zero, dc);
         }
-        return orangeSamples >= 20;
+        return bestRow;
     }
 }
 '@
@@ -107,6 +123,9 @@ $window = [IntPtr]$process.MainWindowHandle
 [void][RgbCentralGigabyte]::ShowWindow($window, 9)
 [void][RgbCentralGigabyte]::SetForegroundWindow($window)
 Start-Sleep -Milliseconds 500
+if ([RgbCentralGigabyte]::GetForegroundWindow() -ne $window) {
+  throw 'Não foi possível colocar o RGB Fusion em primeiro plano. Restaure a janela e tente novamente.'
+}
 
 $rect = [RgbCentralGigabyte+RECT]::new()
 if (-not [RgbCentralGigabyte]::GetWindowRect($window, [ref]$rect)) {
@@ -118,8 +137,10 @@ $aspect = $width / [double]$height
 if ($width -lt 1000 -or $height -lt 600 -or $aspect -lt 1.55 -or $aspect -gt 1.90) {
   throw 'Maximize o RGB Fusion e mantenha aberta a tela B550M AORUS ELITE.'
 }
-if (-not [RgbCentralGigabyte]::LooksLikeKnownLayout($window)) {
-  throw 'O layout conhecido do RGB Fusion 3.24 não foi reconhecido. Nenhum clique foi executado.'
+$windowTitle = [RgbCentralGigabyte]::GetWindowTitle($window)
+$orangeHeaderScore = [RgbCentralGigabyte]::GetOrangeHeaderScore($window)
+if ($windowTitle -notmatch 'B550M AORUS ELITE|RGB Fusion' -or $orangeHeaderScore -lt 12) {
+  throw "O layout conhecido do RGB Fusion 3.24 não foi reconhecido. Nenhum clique foi executado. Janela: '$windowTitle'; faixa laranja: $orangeHeaderScore."
 }
 
 $originalCursor = [RgbCentralGigabyte+POINT]::new()

@@ -10,6 +10,8 @@ O RGB Central só libera um controlador depois que existe um caminho limitado, t
 | Redragon | Experimental | Automação limitada à janela do aplicativo oficial | Depende do modelo e da interface fornecida pelo software Redragon. |
 | Gigabyte RGB Fusion | Experimental | Automação visual limitada à janela oficial | Calibrado para a versão 3.24.1202.1. Valida o layout conhecido, exige teste individual e não utiliza o SDK legado nem acesso direto ao hardware. |
 | Lian Li L-Connect 3 | Bloqueado | Nenhum adaptador liberado | Ainda não há uma interface oficial estável validada neste projeto. |
+| Govee | Disponível em modelos compatíveis | API LAN oficial | Descoberta automática local. Requer ativar `LAN Control` no Govee Home e manter o dispositivo na mesma rede. |
+| Higoogoo, Smart Life, Tuya e outras luzes | Disponível por ponte | API REST do Home Assistant | A marca Higoogoo utiliza controladores diferentes. A integração usa entidades `light.*` já reconhecidas pelo Home Assistant. |
 
 Controladores bloqueados podem ser marcados como **Não uso este controlador**. Eles ficam desativados e ocultos da lista principal, mas podem ser restaurados pela interface.
 
@@ -22,4 +24,4 @@ Controladores bloqueados podem ser marcados como **Não uso este controlador**. 
 - Permanecer desativado por padrão e relatar falhas por controlador.
 - Não incluir binários de terceiros sem licença explícita de redistribuição.
 
-Fontes oficiais: [Corsair iCUE SDK para Node](https://github.com/CorsairOfficial/cue-sdk-node) e [Gigabyte RGB Fusion SDK](https://www.gigabyte.com/mb/rgb/sdk).
+Fontes oficiais: [Corsair iCUE SDK para Node](https://github.com/CorsairOfficial/cue-sdk-node), [Govee LAN API](https://app-h5.govee.com/user-manual/wlan-guide), [Home Assistant REST API](https://developers.home-assistant.io/docs/api/rest/) e [Gigabyte RGB Fusion SDK](https://www.gigabyte.com/mb/rgb/sdk).

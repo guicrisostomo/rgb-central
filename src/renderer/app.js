@@ -1,6 +1,8 @@
 let model;
 let draftScenes = [];
 let feedbackSupportText = '';
+let lightSetupControllerId = '';
+let discoveredGoveeDevices = [];
 
 const VIEW_COPY = {
   overview: ['SEU SETUP', 'Visão geral', 'Aplique uma cor em todos os controladores ativos.'],
@@ -40,6 +42,8 @@ function guidanceFor(message) {
   if (value.includes('icue') || value.includes('sdk')) return 'Abra o iCUE e confirme em Configurações → SDK que o iCUE SDK está ativado.';
   if (value.includes('ngenuity')) return 'Abra o HyperX NGENUITY na tela de iluminação do teclado e tente novamente.';
   if (value.includes('redragon')) return 'Abra o software Redragon na tela Lighting e tente novamente.';
+  if (value.includes('govee')) return 'Ative LAN Control no Govee Home, mantenha a luz e o PC na mesma rede e permita as portas UDP 4001, 4002 e 4003 no firewall.';
+  if (value.includes('home assistant') || value.includes('entidade')) return 'Confirme o endereço, o token de longa duração e as entidades no formato light.nome_da_luz.';
   if (value.includes('rede') || value.includes('porta') || value.includes('eaddrinuse')) return 'Confira a porta configurada e feche outro programa que possa estar usando o mesmo endereço.';
   return 'Confira se o aplicativo oficial está aberto e tente novamente. Se o problema continuar, copie os detalhes técnicos.';
 }
@@ -180,6 +184,80 @@ function openSceneEditor() {
   document.querySelector('#scene-dialog').showModal();
 }
 
+function renderGoveeDevices() {
+  const picker = document.querySelector('#govee-devices');
+  if (!discoveredGoveeDevices.length) {
+    picker.replaceChildren(appendTextElement(document.createDocumentFragment(), 'small', 'Nenhum dispositivo disponível. Use “Procurar na rede”.'));
+    return;
+  }
+  const configured = model.controllers.find((controller) => controller.id === 'govee')?.devices || [];
+  const configuredIds = new Set(configured.map((device) => device.id));
+  picker.replaceChildren(...discoveredGoveeDevices.map((device) => {
+    const label = document.createElement('label');
+    label.className = 'device-choice';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = device.id;
+    input.checked = configuredIds.has(device.id) || discoveredGoveeDevices.length === 1;
+    const copy = document.createElement('span');
+    appendTextElement(copy, 'strong', device.sku || 'Govee');
+    appendTextElement(copy, 'small', `Rede local · ${device.ip}`);
+    label.append(input, copy);
+    return label;
+  }));
+}
+
+function openLightSetup(controller) {
+  lightSetupControllerId = controller.id;
+  const govee = controller.setupKind === 'govee';
+  document.querySelector('#light-dialog-title').textContent = govee ? 'Conectar Govee' : 'Conectar mangueira ou backlight';
+  document.querySelector('#light-dialog-subtitle').textContent = govee
+    ? 'Localize dispositivos compatíveis e faça um teste visual antes de ativar.'
+    : 'Use suas entidades de luz do Home Assistant sem editar arquivos.';
+  document.querySelector('#govee-setup').hidden = !govee;
+  document.querySelector('#home-assistant-setup').hidden = govee;
+  document.querySelector('#light-form-status').textContent = '';
+  document.querySelector('#ha-base-url').required = !govee;
+  document.querySelector('#ha-entities').required = !govee;
+  document.querySelector('#ha-token').required = false;
+  if (govee) {
+    discoveredGoveeDevices = controller.devices || [];
+    document.querySelector('#govee-status').textContent = discoveredGoveeDevices.length
+      ? `${discoveredGoveeDevices.length} dispositivo(s) configurado(s). Procure novamente para atualizar.`
+      : 'Nenhuma busca realizada.';
+    renderGoveeDevices();
+  } else {
+    document.querySelector('#ha-base-url').value = controller.baseUrl || '';
+    document.querySelector('#ha-entities').value = (controller.entities || []).join('\n');
+    document.querySelector('#ha-token').value = '';
+    document.querySelector('#ha-token').required = !controller.secretConfigured;
+    document.querySelector('#ha-token-help').textContent = controller.secretConfigured
+      ? 'Já existe um token protegido. Deixe em branco para mantê-lo.'
+      : 'O token fica somente neste computador e não aparece na interface.';
+  }
+  document.querySelector('#light-dialog').showModal();
+}
+
+async function runControllerTest(controller, button) {
+  button.disabled = true;
+  button.textContent = 'Testando verde…';
+  try {
+    const response = await window.rgbCentral.testController(controller.id);
+    if (!response.ok) {
+      showError(response, `Não foi possível testar ${controller.name}`);
+      return;
+    }
+    model = response.snapshot;
+    render();
+    showFeedback({ title: 'Adaptador preparado', message: response.message, tone: 'success' });
+  } catch (error) {
+    showError(error, `Não foi possível testar ${controller.name}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Testar adaptador';
+  }
+}
+
 function renderScenes() {
   const scenes = document.querySelector('#scenes');
   scenes.replaceChildren(...model.scenes.map((scene) => {
@@ -257,35 +335,24 @@ function renderControllers() {
     item.appendChild(toggle);
     const description = !configured
       ? controller.setupAvailable
-        ? `${controller.description || ''} Abra o aplicativo oficial antes do teste.`.trim()
+        ? `${controller.description || ''} ${controller.setupKind === 'test' ? 'Abra o aplicativo oficial antes do teste.' : 'Use o assistente para conectar e testar.'}`.trim()
         : `${controller.description || ''} Adaptador seguro ainda indisponível.`.trim()
       : result?.message || controller.description || '';
     appendTextElement(item, 'small', description);
     const actions = document.createElement('div');
     actions.className = 'controller-actions';
-    if (!configured && controller.setupAvailable) {
+    if (controller.setupAvailable && (!configured || ['govee', 'home-assistant'].includes(controller.setupKind))) {
       const setupButton = document.createElement('button');
       setupButton.type = 'button';
       setupButton.className = 'secondary controller-setup';
-      setupButton.textContent = 'Testar adaptador';
-      setupButton.addEventListener('click', async () => {
-        setupButton.disabled = true;
-        setupButton.textContent = 'Testando verde…';
-        try {
-          const response = await window.rgbCentral.testController(controller.id);
-          if (!response.ok) {
-            showError(response, `Não foi possível testar ${controller.name}`);
-            return;
-          }
-          model = response.snapshot;
-          render();
-          showFeedback({ title: 'Adaptador preparado', message: response.message, tone: 'success' });
-        } catch (error) {
-          showError(error, `Não foi possível testar ${controller.name}`);
-        } finally {
-          setupButton.disabled = false;
-          setupButton.textContent = 'Testar adaptador';
-        }
+      setupButton.textContent = controller.setupKind === 'govee'
+        ? (configured ? 'Atualizar dispositivos' : 'Localizar dispositivos')
+        : controller.setupKind === 'home-assistant'
+          ? (configured ? 'Editar conexão' : 'Conectar luzes')
+          : 'Testar adaptador';
+      setupButton.addEventListener('click', () => {
+        if (controller.setupKind === 'test') runControllerTest(controller, setupButton);
+        else openLightSetup(controller);
       });
       actions.appendChild(setupButton);
     }
@@ -382,6 +449,60 @@ async function runTool(button) {
 async function start() {
   setupFeedbackDialog();
   model = await window.rgbCentral.bootstrap();
+  const lightDialog = document.querySelector('#light-dialog');
+  const closeLightDialog = () => lightDialog.close();
+  document.querySelector('#close-light-dialog').addEventListener('click', closeLightDialog);
+  document.querySelector('#cancel-light-dialog').addEventListener('click', closeLightDialog);
+  document.querySelector('#discover-govee').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const status = document.querySelector('#govee-status');
+    button.disabled = true;
+    status.textContent = 'Procurando por até 3 segundos…';
+    try {
+      discoveredGoveeDevices = await window.rgbCentral.discoverGovee();
+      status.textContent = discoveredGoveeDevices.length
+        ? `${discoveredGoveeDevices.length} dispositivo(s) encontrado(s).`
+        : 'Nenhum dispositivo encontrado. Confira LAN Control e a rede Wi-Fi.';
+      renderGoveeDevices();
+    } catch (error) {
+      status.textContent = 'A busca não pôde ser concluída.';
+      showError(error, 'Não foi possível procurar dispositivos Govee');
+    } finally {
+      button.disabled = false;
+    }
+  });
+  document.querySelector('#light-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const submit = document.querySelector('#save-light');
+    const status = document.querySelector('#light-form-status');
+    submit.disabled = true;
+    status.textContent = 'Enviando o teste verde…';
+    try {
+      const response = lightSetupControllerId === 'govee'
+        ? await window.rgbCentral.configureGovee(
+          [...document.querySelectorAll('#govee-devices input:checked')].map((input) => input.value)
+        )
+        : await window.rgbCentral.configureAmbientLight({
+          baseUrl: document.querySelector('#ha-base-url').value,
+          entities: document.querySelector('#ha-entities').value,
+          token: document.querySelector('#ha-token').value
+        });
+      if (!response.ok) {
+        status.textContent = response.message;
+        showError(response, 'Não foi possível conectar a iluminação');
+        return;
+      }
+      model = response.snapshot;
+      lightDialog.close();
+      render();
+      showFeedback({ title: 'Iluminação preparada', message: response.message, tone: 'success' });
+    } catch (error) {
+      status.textContent = normalizeError(error).message;
+      showError(error, 'Não foi possível conectar a iluminação');
+    } finally {
+      submit.disabled = false;
+    }
+  });
   document.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', () => showView(button.dataset.view)));
   document.querySelectorAll('.navigate').forEach((button) => button.addEventListener('click', () => showView(button.dataset.target)));
   document.querySelectorAll('input[name="access-mode"]').forEach((input) => input.addEventListener('change', updateLanWarning));

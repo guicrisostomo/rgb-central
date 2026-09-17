@@ -130,6 +130,33 @@
       </div>
     </dialog>
 
+    <dialog id="light-dialog" aria-labelledby="light-dialog-title">
+      <form id="light-form">
+        <div class="dialog-header">
+          <div><p class="eyebrow">ILUMINAÇÃO DO AMBIENTE</p><h2 id="light-dialog-title">Adicionar luz</h2><p id="light-dialog-subtitle"></p></div>
+          <button id="close-light-dialog" class="icon-button" aria-label="Fechar" type="button">×</button>
+        </div>
+        <section id="govee-setup" class="light-setup" hidden>
+          <div class="notice neutral">No aplicativo Govee Home, abra as configurações do dispositivo e ative <strong>LAN Control</strong>. O computador e a luz precisam estar na mesma rede.</div>
+          <div class="setup-toolbar">
+            <button id="discover-govee" class="secondary" type="button">Procurar na rede</button>
+            <span id="govee-status" role="status">Nenhuma busca realizada.</span>
+          </div>
+          <div id="govee-devices" class="device-picker"></div>
+          <div class="notice">A busca é totalmente local e usa apenas as portas UDP oficiais da Govee. Modelos sem a opção LAN Control não aparecerão.</div>
+        </section>
+        <section id="home-assistant-setup" class="light-setup" hidden>
+          <div class="notice neutral">Use este caminho para Higoogoo, Smart Life, Tuya e outras luzes que já aparecem como luz no Home Assistant.</div>
+          <label class="stacked-field"><span>Endereço do Home Assistant</span><input id="ha-base-url" type="url" maxlength="300" placeholder="http://homeassistant.local:8123" /></label>
+          <label class="stacked-field"><span>Entidades de luz</span><textarea id="ha-entities" rows="3" placeholder="light.mangueira&#10;light.backlight_tv"></textarea><small>Uma entidade por linha, sempre começando com light.</small></label>
+          <label class="stacked-field"><span>Token de longa duração</span><input id="ha-token" type="password" maxlength="4096" autocomplete="off" placeholder="Cole o token aqui" /><small id="ha-token-help">O token fica somente neste computador e não aparece na interface.</small></label>
+          <div class="notice">No Home Assistant: perfil do usuário → Segurança → Tokens de acesso de longa duração. Não envie esse token nem publique o arquivo de configuração.</div>
+        </section>
+        <p id="light-form-status" class="form-error" role="alert"></p>
+        <div class="dialog-actions"><button id="cancel-light-dialog" class="secondary" type="button">Cancelar</button><button id="save-light" class="primary" type="submit">Testar verde e salvar</button></div>
+      </form>
+    </dialog>
+
     <dialog id="scene-dialog">
       <form id="scene-form" method="dialog">
         <div class="dialog-header"><div><p class="eyebrow">SUAS PREFERÊNCIAS</p><h2>Personalizar cenas</h2><p>Crie combinações próprias de nome, cor e brilho.</p></div><button id="close-scenes" class="icon-button" aria-label="Fechar" type="button">×</button></div>

@@ -8,6 +8,8 @@ const { ensureUserFiles, loadConfig, saveConfig } = require('./core/config');
 const { Orchestrator } = require('./core/orchestrator');
 const { createApiServer } = require('./core/api-server');
 const { buildHomeAssistantConfig, normalizeNetworkSettings } = require('./core/integrations');
+const { discoverGoveeDevices, GoveeLanController } = require('./core/govee-lan');
+const { HomeAssistantLightController, normalizeBaseUrl, normalizeEntities } = require('./core/home-assistant-light');
 
 const execFileAsync = promisify(execFile);
 const SETUP_TOOLS = {
@@ -23,6 +25,7 @@ let config;
 let paths;
 let orchestrator;
 let quitting = false;
+let latestGoveeDiscovery = [];
 
 function resourceRoot() {
   return app.isPackaged ? process.resourcesPath : path.join(__dirname, '..');
@@ -78,9 +81,15 @@ function refreshTrayMenu() {
 function publicConfig() {
   return {
     scenes: config.scenes,
-    controllers: config.controllers.map(({ script, args, ...safe }) => ({
+    controllers: config.controllers.map(({ script, args, token, ...safe }) => ({
       ...safe,
-      setupAvailable: TESTABLE_CONTROLLERS.has(safe.id)
+      setupAvailable: TESTABLE_CONTROLLERS.has(safe.id) || ['govee-lan', 'home-assistant-light'].includes(safe.type),
+      setupKind: safe.type === 'govee-lan'
+        ? 'govee'
+        : safe.type === 'home-assistant-light'
+          ? 'home-assistant'
+          : TESTABLE_CONTROLLERS.has(safe.id) ? 'test' : null,
+      secretConfigured: safe.type === 'home-assistant-light' ? Boolean(token) : undefined
     })),
     state: orchestrator.publicState(),
     api: {
@@ -173,6 +182,64 @@ async function testController(controllerId) {
   return { ok: true, snapshot, message: `${controller.name} preparado. Confirme se o dispositivo ficou verde e então ative-o.` };
 }
 
+async function discoverGovee() {
+  latestGoveeDiscovery = await discoverGoveeDevices();
+  return latestGoveeDiscovery;
+}
+
+async function configureGovee(deviceIds) {
+  if (!Array.isArray(deviceIds) || !deviceIds.length) {
+    throw new Error('Selecione pelo menos um dispositivo Govee.');
+  }
+  const selectedIds = new Set(deviceIds.map(String));
+  const current = config.controllers.find((controller) => controller.id === 'govee');
+  if (!current) throw new Error('Controlador Govee não encontrado.');
+  const available = new Map([...(current.devices || []), ...latestGoveeDiscovery].map((device) => [device.id, device]));
+  const devices = [...available.values()].filter((device) => selectedIds.has(device.id));
+  if (devices.length !== selectedIds.size) {
+    throw new Error('A busca expirou ou algum dispositivo não pertence ao resultado atual. Procure novamente.');
+  }
+  const candidate = { ...current, devices };
+  const result = await new GoveeLanController(candidate).apply({
+    id: 'adapter_test', name: 'Teste do adaptador', color: '#00ff67', brightness: 70
+  });
+  if (!result.ok) return result;
+  const controllers = config.controllers.map((controller) => (
+    controller.id === 'govee' ? { ...candidate, configured: true } : controller
+  ));
+  const snapshot = persistConfig({ ...config, controllers });
+  return {
+    ok: true,
+    snapshot,
+    message: `${devices.length} dispositivo(s) Govee receberam o teste verde. Confirme visualmente e então ative o controlador.`
+  };
+}
+
+async function configureAmbientLight(settings) {
+  const current = config.controllers.find((controller) => controller.id === 'ambient');
+  if (!current) throw new Error('Controlador de iluminação ambiente não encontrado.');
+  const token = String(settings?.token || '').trim() || current.token;
+  const candidate = {
+    ...current,
+    baseUrl: normalizeBaseUrl(settings?.baseUrl),
+    entities: normalizeEntities(settings?.entities),
+    token
+  };
+  const result = await new HomeAssistantLightController(candidate).apply({
+    id: 'adapter_test', name: 'Teste do adaptador', color: '#00ff67', brightness: 70
+  });
+  if (!result.ok) return result;
+  const controllers = config.controllers.map((controller) => (
+    controller.id === 'ambient' ? { ...candidate, configured: true } : controller
+  ));
+  const snapshot = persistConfig({ ...config, controllers });
+  return {
+    ok: true,
+    snapshot,
+    message: `${candidate.entities.length} luz(es) receberam o teste verde pelo Home Assistant. Confirme visualmente e então ative o controlador.`
+  };
+}
+
 function persistConfig(nextConfig) {
   const validated = saveConfig(paths.configPath, nextConfig);
   Object.assign(config, validated);
@@ -233,6 +300,9 @@ ipcMain.handle('set-launch-at-login', (_event, enabled) => {
 ipcMain.handle('save-app-settings', (_event, settings) => saveAppSettings(settings));
 ipcMain.handle('run-setup-tool', (_event, toolId) => runSetupTool(toolId));
 ipcMain.handle('test-controller', (_event, controllerId) => testController(controllerId));
+ipcMain.handle('discover-govee', () => discoverGovee());
+ipcMain.handle('configure-govee', (_event, deviceIds) => configureGovee(deviceIds));
+ipcMain.handle('configure-ambient-light', (_event, settings) => configureAmbientLight(settings));
 ipcMain.handle('open-setup-output', (_event, toolId) => openSetupOutput(toolId));
 ipcMain.handle('copy-home-assistant-config', () => {
   if (config.api.host !== '0.0.0.0') {

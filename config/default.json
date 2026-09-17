@@ -1,5 +1,5 @@
 {
-  "configVersion": 6,
+  "configVersion": 7,
   "api": {
     "host": "127.0.0.1",
     "port": 47831,
@@ -80,6 +80,28 @@
       "enabled": false,
       "ignored": false,
       "timeoutMs": 20000
+    },
+    {
+      "id": "govee",
+      "name": "Govee / backlight",
+      "description": "Controle local de mangueiras, fitas e backlights Govee compatíveis com a API LAN oficial.",
+      "type": "govee-lan",
+      "configured": false,
+      "devices": [],
+      "enabled": false,
+      "ignored": false
+    },
+    {
+      "id": "ambient",
+      "name": "Mangueira e backlight",
+      "description": "Integra luzes Higoogoo, Smart Life, Tuya e outras por entidades de luz do Home Assistant.",
+      "type": "home-assistant-light",
+      "configured": false,
+      "baseUrl": "",
+      "token": "",
+      "entities": [],
+      "enabled": false,
+      "ignored": false
     }
   ]
 }
