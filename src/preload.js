@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('rgbCentral', {
   applyScene: (id) => ipcRenderer.invoke('apply-scene', id),
   saveScenes: (scenes) => ipcRenderer.invoke('save-scenes', scenes),
   setControllerEnabled: (id, enabled) => ipcRenderer.invoke('set-controller-enabled', id, enabled),
+  setControllerIgnored: (id, ignored) => ipcRenderer.invoke('set-controller-ignored', id, ignored),
   setLaunchAtLogin: (enabled) => ipcRenderer.invoke('set-launch-at-login', enabled),
   saveAppSettings: (settings) => ipcRenderer.invoke('save-app-settings', settings),
   runSetupTool: (toolId) => ipcRenderer.invoke('run-setup-tool', toolId),

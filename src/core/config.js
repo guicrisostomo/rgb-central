@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 
 const SCENE_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 const CONTROLLER_ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
-const CURRENT_CONFIG_VERSION = 4;
+const CURRENT_CONFIG_VERSION = 5;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -57,6 +57,12 @@ function validateConfig(config) {
     }
     if (typeof controller.configured !== 'boolean') {
       throw new Error(`Calibração inválida no controlador ${controller.id}.`);
+    }
+    if (typeof controller.ignored !== 'boolean') {
+      throw new Error(`Preferência de exibição inválida no controlador ${controller.id}.`);
+    }
+    if (controller.ignored && controller.enabled) {
+      throw new Error(`Controlador ignorado não pode ficar ativo: ${controller.id}.`);
     }
     if (!['simulation', 'powershell', 'corsair-sdk'].includes(controller.type)) {
       throw new Error(`Tipo não permitido no controlador ${controller.id}.`);
@@ -113,18 +119,20 @@ function ensureUserFiles({ userDataPath, resourcesPath }) {
         hyperx: 'hyperx-color.ps1',
         redragon: 'redragon-color.ps1'
       };
-      if (controller.id === 'corsair') {
+      if (controller.id === 'corsair' && previousVersion < 4) {
         const { script, args, ...safeController } = controller;
         return {
           ...safeController,
           type: 'corsair-sdk',
           description: 'Controle oficial pelo iCUE SDK; requer habilitar o SDK nas configurações do iCUE.',
           configured: false,
-          enabled: false
+          enabled: false,
+          ignored: Boolean(controller.ignored)
         };
       }
       return {
         ...controller,
+        ignored: Boolean(controller.ignored),
         ...(knownScripts[controller.id] ? { script: knownScripts[controller.id], args: [] } : {}),
         configured: previousVersion < 3 ? controller.type === 'simulation' : Boolean(controller.configured),
         enabled: previousVersion < 3

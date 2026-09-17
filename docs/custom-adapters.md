@@ -33,6 +33,7 @@ Abra o `config.json` pelo botão **Abrir configuração** e adicione um item a `
   "args": [],
   "configured": false,
   "enabled": false,
+  "ignored": false,
   "timeoutMs": 20000
 }
 ```

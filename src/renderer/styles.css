@@ -59,6 +59,9 @@ p { margin: 0; }
 .controller.needs-setup { border-left: 3px solid #856d2c; }
 .controller small { color: var(--muted); grid-column: 1 / -1; line-height: 1.45; }
 .controller-setup { grid-column: 1 / -1; justify-self: start; }
+.controller-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.controller-actions .controller-setup { grid-column: auto; }
+.controller-ignore { color: var(--muted); }
 .controller .state { color: var(--muted); font-size: 13px; }
 .controller-toggle { display: flex; align-items: center; gap: 8px; }
 .controller-toggle input { width: 17px; height: 17px; accent-color: var(--green); }
@@ -100,6 +103,11 @@ fieldset.settings-card { display: grid; border: 1px solid var(--border); }
 .advanced-card { margin-top: 22px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 13px; background: #0e1218; }
 .advanced-card summary { cursor: pointer; color: var(--muted); font-weight: 650; }
 .advanced-card .actions { margin-top: 12px; }
+.ignored-card { margin-top: 12px; }
+.ignored-controller-list { display: grid; gap: 8px; margin-top: 12px; }
+.ignored-controller { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+.ignored-controller span { display: grid; gap: 3px; }
+.ignored-controller small { color: var(--muted); }
 .actions { display: flex; gap: 8px; }
 button.secondary { border: 1px solid var(--border); background: var(--panel-2); color: var(--text); padding: 10px 14px; border-radius: 10px; cursor: pointer; }
 button.secondary:hover { border-color: #526074; }

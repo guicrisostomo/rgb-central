@@ -216,6 +216,17 @@ ipcMain.handle('set-controller-enabled', (_event, controllerId, enabled) => {
   ));
   return persistConfig({ ...config, controllers });
 });
+ipcMain.handle('set-controller-ignored', (_event, controllerId, ignored) => {
+  const selected = config.controllers.find((controller) => controller.id === controllerId);
+  if (!selected) throw new Error('Controlador não encontrado.');
+  if (selected.type === 'simulation') throw new Error('O modo de demonstração não pode ser ocultado.');
+  const controllers = config.controllers.map((controller) => (
+    controller.id === controllerId
+      ? { ...controller, ignored: Boolean(ignored), enabled: ignored ? false : controller.enabled }
+      : controller
+  ));
+  return persistConfig({ ...config, controllers });
+});
 ipcMain.handle('set-launch-at-login', (_event, enabled) => {
   app.setLoginItemSettings({ openAtLogin: Boolean(enabled), openAsHidden: true });
   return app.getLoginItemSettings().openAtLogin;

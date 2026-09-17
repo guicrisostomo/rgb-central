@@ -11,13 +11,13 @@ test('configuração padrão é válida', () => {
 });
 
 test('rejeita cena com ID perigoso', () => {
-  const value = { configVersion: 4, api: { host: '127.0.0.1', port: 47831, token: '' }, scenes: [{ id: '../x', name: 'Inválida', color: '#ffffff', brightness: 1 }], controllers: [] };
+  const value = { configVersion: 5, api: { host: '127.0.0.1', port: 47831, token: '' }, scenes: [{ id: '../x', name: 'Inválida', color: '#ffffff', brightness: 1 }], controllers: [] };
   assert.throws(() => validateConfig(value), /ID de cena inválido/);
 });
 
 test('não permite API na rede sem token forte', () => {
   const value = {
-    configVersion: 4,
+    configVersion: 5,
     api: { host: '0.0.0.0', port: 47831, token: 'curto' },
     scenes: [{ id: 'green', name: 'Verde', color: '#00ff00', brightness: 70 }],
     controllers: []
@@ -27,10 +27,10 @@ test('não permite API na rede sem token forte', () => {
 
 test('aceita cenas personalizadas sem depender de fabricante', () => {
   const value = {
-    configVersion: 4,
+    configVersion: 5,
     api: { host: '127.0.0.1', port: 47831, token: '' },
     scenes: [{ id: 'reading', name: 'Leitura', color: '#f2c94c', brightness: 42 }],
-    controllers: [{ id: 'demo', name: 'Demonstração', type: 'simulation', configured: true, enabled: true }]
+    controllers: [{ id: 'demo', name: 'Demonstração', type: 'simulation', configured: true, enabled: true, ignored: false }]
   };
   assert.equal(validateConfig(value).scenes[0].brightness, 42);
 });
@@ -39,10 +39,10 @@ test('salva e recarrega configuração validada', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rgb-central-'));
   const configPath = path.join(directory, 'config.json');
   const value = {
-    configVersion: 4,
+    configVersion: 5,
     api: { host: '127.0.0.1', port: 47831, token: '' },
     scenes: [{ id: 'custom', name: 'Minha cena', color: '#123abc', brightness: 55 }],
-    controllers: [{ id: 'demo', name: 'Demonstração', type: 'simulation', configured: true, enabled: false }]
+    controllers: [{ id: 'demo', name: 'Demonstração', type: 'simulation', configured: true, enabled: false, ignored: false }]
   };
   try {
     saveConfig(configPath, value);
@@ -67,7 +67,7 @@ test('migra configuração antiga desativando adaptadores não calibrados', () =
   try {
     ensureUserFiles({ userDataPath: directory, resourcesPath: path.join(__dirname, '..') });
     const migrated = loadConfig(configPath);
-    assert.equal(migrated.configVersion, 4);
+    assert.equal(migrated.configVersion, 5);
     assert.equal(migrated.controllers[0].configured, true);
     assert.equal(migrated.controllers[1].configured, false);
     assert.equal(migrated.controllers[1].enabled, false);
@@ -121,6 +121,57 @@ test('preserva adaptadores já confirmados ao adicionar o SDK Corsair', () => {
     assert.equal(migrated[0].enabled, true);
     assert.equal(migrated[1].configured, true);
     assert.equal(migrated[1].enabled, false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('migra preferências de controladores e permite ocultar apenas quando desativado', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rgb-central-ignore-'));
+  const configPath = path.join(directory, 'config.json');
+  const oldConfig = {
+    configVersion: 4,
+    api: { host: '127.0.0.1', port: 47831, token: 'token-local' },
+    scenes: [{ id: 'green', name: 'Verde', color: '#00ff00', brightness: 70 }],
+    controllers: [{
+      id: 'lianli', name: 'Lian Li', type: 'powershell', script: 'official-app-profile.ps1',
+      args: ['-Vendor', 'lianli'], configured: false, enabled: false
+    }]
+  };
+  fs.writeFileSync(configPath, JSON.stringify(oldConfig), 'utf8');
+  try {
+    ensureUserFiles({ userDataPath: directory, resourcesPath: path.join(__dirname, '..') });
+    const migrated = loadConfig(configPath);
+    assert.equal(migrated.configVersion, 5);
+    assert.equal(migrated.controllers[0].ignored, false);
+    const invalid = structuredClone(migrated);
+    invalid.controllers[0].ignored = true;
+    invalid.controllers[0].enabled = true;
+    assert.throws(() => validateConfig(invalid), /ignorado não pode ficar ativo/);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('preserva Corsair já preparado ao migrar apenas a preferência de exibição', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rgb-central-corsair-v5-'));
+  const configPath = path.join(directory, 'config.json');
+  const oldConfig = {
+    configVersion: 4,
+    api: { host: '127.0.0.1', port: 47831, token: 'token-local' },
+    scenes: [{ id: 'green', name: 'Verde', color: '#00ff00', brightness: 70 }],
+    controllers: [{
+      id: 'corsair', name: 'Corsair', type: 'corsair-sdk', configured: true, enabled: true,
+      timeoutMs: 20000
+    }]
+  };
+  fs.writeFileSync(configPath, JSON.stringify(oldConfig), 'utf8');
+  try {
+    ensureUserFiles({ userDataPath: directory, resourcesPath: path.join(__dirname, '..') });
+    const migrated = loadConfig(configPath).controllers[0];
+    assert.equal(migrated.configured, true);
+    assert.equal(migrated.enabled, true);
+    assert.equal(migrated.ignored, false);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

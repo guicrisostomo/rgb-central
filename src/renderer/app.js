@@ -122,16 +122,18 @@ function renderScenes() {
 }
 
 function renderControllers() {
-  const enabledCount = model.controllers.filter((item) => item.enabled).length;
-  const readyCount = model.controllers.filter((item) => item.configured).length;
+  const visibleControllers = model.controllers.filter((item) => !item.ignored);
+  const ignoredControllers = model.controllers.filter((item) => item.ignored);
+  const enabledCount = visibleControllers.filter((item) => item.enabled).length;
+  const readyCount = visibleControllers.filter((item) => item.configured).length;
   document.querySelector('#controller-summary').textContent = `${enabledCount} ativos · ${readyCount} preparados`;
-  document.querySelector('#overview-controller-count').textContent = `${enabledCount} de ${model.controllers.length} ativos`;
-  document.querySelector('#overview-controller-help').textContent = readyCount < model.controllers.length
+  document.querySelector('#overview-controller-count').textContent = `${enabledCount} de ${visibleControllers.length} ativos`;
+  document.querySelector('#overview-controller-help').textContent = readyCount < visibleControllers.length
     ? 'Alguns dispositivos ainda precisam ser preparados.'
     : 'Todos os dispositivos estão preparados.';
 
   const list = document.querySelector('#controllers');
-  list.replaceChildren(...model.controllers.map((controller) => {
+  list.replaceChildren(...visibleControllers.map((controller) => {
     const result = controllerResult(controller.id);
     const configured = controller.configured;
     const item = document.createElement('div');
@@ -172,6 +174,8 @@ function renderControllers() {
         : `${controller.description || ''} Adaptador seguro ainda indisponível.`.trim()
       : result?.message || controller.description || '';
     appendTextElement(item, 'small', description);
+    const actions = document.createElement('div');
+    actions.className = 'controller-actions';
     if (!configured && controller.setupAvailable) {
       const setupButton = document.createElement('button');
       setupButton.type = 'button';
@@ -191,9 +195,56 @@ function renderControllers() {
           window.alert(`Teste não concluído: ${error.message}`);
         }
       });
-      item.appendChild(setupButton);
+      actions.appendChild(setupButton);
     }
+    if (controller.type !== 'simulation') {
+      const ignoreButton = document.createElement('button');
+      ignoreButton.type = 'button';
+      ignoreButton.className = 'text-button controller-ignore';
+      ignoreButton.textContent = 'Não uso este controlador';
+      ignoreButton.addEventListener('click', async () => {
+        ignoreButton.disabled = true;
+        try {
+          model = await window.rgbCentral.setControllerIgnored(controller.id, true);
+          render();
+        } catch (error) {
+          ignoreButton.disabled = false;
+          window.alert(error.message);
+        }
+      });
+      actions.appendChild(ignoreButton);
+    }
+    if (actions.childElementCount) item.appendChild(actions);
     return item;
+  }));
+
+  const ignoredCard = document.querySelector('#ignored-controllers-card');
+  ignoredCard.hidden = ignoredControllers.length === 0;
+  document.querySelector('#ignored-controller-summary').textContent = ignoredControllers.length === 1
+    ? '1 controlador oculto'
+    : `${ignoredControllers.length} controladores ocultos`;
+  document.querySelector('#ignored-controllers').replaceChildren(...ignoredControllers.map((controller) => {
+    const row = document.createElement('div');
+    row.className = 'ignored-controller';
+    const label = document.createElement('span');
+    appendTextElement(label, 'strong', controller.name);
+    appendTextElement(label, 'small', 'Fora das cenas e desativado.');
+    const restore = document.createElement('button');
+    restore.type = 'button';
+    restore.className = 'secondary';
+    restore.textContent = 'Restaurar';
+    restore.addEventListener('click', async () => {
+      restore.disabled = true;
+      try {
+        model = await window.rgbCentral.setControllerIgnored(controller.id, false);
+        render();
+      } catch (error) {
+        restore.disabled = false;
+        window.alert(error.message);
+      }
+    });
+    row.append(label, restore);
+    return row;
   }));
 }
 

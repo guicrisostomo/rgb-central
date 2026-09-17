@@ -1,5 +1,5 @@
 {
-  "configVersion": 4,
+  "configVersion": 5,
   "api": {
     "host": "127.0.0.1",
     "port": 47831,
@@ -20,7 +20,8 @@
       "description": "Confirma o funcionamento sem tocar no hardware.",
       "type": "simulation",
       "configured": true,
-      "enabled": true
+      "enabled": true,
+      "ignored": false
     },
     {
       "id": "corsair",
@@ -29,6 +30,7 @@
       "type": "corsair-sdk",
       "configured": false,
       "enabled": false,
+      "ignored": false,
       "timeoutMs": 20000
     },
     {
@@ -40,6 +42,7 @@
       "script": "hyperx-color.ps1",
       "args": [],
       "enabled": false,
+      "ignored": false,
       "timeoutMs": 20000
     },
     {
@@ -51,28 +54,31 @@
       "script": "redragon-color.ps1",
       "args": [],
       "enabled": false,
+      "ignored": false,
       "timeoutMs": 20000
     },
     {
       "id": "gigabyte",
       "name": "Gigabyte RGB Fusion",
-      "description": "Modelo opcional para dispositivos compatíveis com RGB Fusion.",
+      "description": "Aguardando um método oficial confirmado para placas modernas. O SDK público legado não é usado por segurança.",
       "type": "powershell",
       "configured": false,
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "gigabyte"],
       "enabled": false,
+      "ignored": false,
       "timeoutMs": 20000
     },
     {
       "id": "lianli",
       "name": "Lian Li L-Connect 3",
-      "description": "Modelo opcional para dispositivos compatíveis com L-Connect 3.",
+      "description": "Opcional: use somente se algum dispositivo RGB for realmente controlado pelo L-Connect 3.",
       "type": "powershell",
       "configured": false,
       "script": "official-app-profile.ps1",
       "args": ["-Vendor", "lianli"],
       "enabled": false,
+      "ignored": false,
       "timeoutMs": 20000
     }
   ]
